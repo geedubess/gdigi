@@ -96,6 +96,31 @@ debug_msg (debug_flags_t flags, char *fmt, ...)
     }
 }
 
+#define HEX_WIDTH 26
+
+void
+debug_msg_hex (unsigned char *in, int len)
+{
+    if (debug_flag_is_set(DEBUG_HEX)) {
+        /* buffer up a line (avoid out-of-order or interrupted output) */
+        char out [1024]; /* "HH " * HEX_WIDTH */
+        int pos = 0;
+        int i;
+
+        for (i = 0; i < len; i++) {
+            if (i && (i % HEX_WIDTH) == 0) {
+                pos = 0;
+                fprintf(stderr, "%s\n", out);
+            }
+            pos += sprintf(out + pos, "%02x ", (unsigned char) in[i]);
+        }
+
+        if (i % HEX_WIDTH) {
+            fprintf(stderr, "%s\n", out);
+        }
+    }
+}
+
 /*
  * Format a value according to the xml setting.
  * Returns an allocated buffer that must be freed by the caller.
@@ -386,8 +411,6 @@ MessageID get_message_id(GString *msg)
     return -1;
 }
 
-#define HEX_WIDTH 26
-
 static gboolean modifier_linkable_list_request_pending = FALSE;
 
 void push_message(GString *msg)
@@ -400,18 +423,8 @@ void push_message(GString *msg)
         g_warning("Pushing incorrect message!");
     }
 
-    int x;
-    if (debug_flag_is_set(DEBUG_HEX)) {
-        for (x = 0; x<msg->len; x++) {
-            if (x && (x % HEX_WIDTH) == 0) {
-                printf("\n");
-            }
-            printf("%02x ", (unsigned char)msg->str[x]);
-        }
-        if (x % HEX_WIDTH) {
-            printf("\n");
-        }
-    }
+    debug_msg_hex((unsigned char *)msg->str, msg->len);
+
     debug_msg(DEBUG_VERBOSE, "Received %s", get_message_name(msgid));
 
     SettingParam *param;
@@ -472,14 +485,7 @@ void push_message(GString *msg)
 
             case NOTIFY_MODIFIER_GROUP_CHANGED:
             {
-                int i;
-                if (debug_flag_is_set(DEBUG_HEX)) {
-                    printf("\n");
-                    for (i = 0; i < msg->len; i++) {
-                        printf(" %02x", (unsigned char) str[i]);
-                    }
-                    printf("\n");
-                }
+                debug_msg_hex((unsigned char *)str, msg->len);
 
                 debug_msg(DEBUG_MSG2HOST,
                           "NOTIFY_MODIFIER_GROUP_CHANGED: Modifier group "
@@ -501,15 +507,11 @@ void push_message(GString *msg)
             return;
         case RECEIVE_GLOBAL_PARAMETERS:
             unpack_message(msg);
-            gint tot, n, x;
-            tot = (unsigned char)msg->str[9];
-            if (debug_flag_is_set(DEBUG_HEX)) {
-                for (n = 0; n < msg->len; n++) {
-                    printf("%02x ",(unsigned char) msg->str[n]);
-                }
-                printf("\n");
-            }
+            debug_msg_hex((unsigned char *)msg->str, msg->len);
 
+            gint tot, n, x;
+
+            tot = (unsigned char)msg->str[9];
             n = 0;
             x = 10;
             do {
@@ -535,15 +537,9 @@ void push_message(GString *msg)
 
             modifier_linkable_list_request_pending = FALSE;
             unpack_message(msg);
+            debug_msg_hex((unsigned char *)msg->str, msg->len);
+
             tot = (unsigned char)msg->str[9];
-
-            if (debug_flag_is_set(DEBUG_HEX)) {
-                for (n = 0; n < msg->len; n++) {
-                    printf("%02x ",(unsigned char) msg->str[n]);
-                }
-                printf("\n");
-            }
-
 
             update_modifier_linkable_list(msg);
 
