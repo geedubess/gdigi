@@ -922,36 +922,37 @@ GtkWidget *create_vbox(Effect *widgets, gint amt, gchar *label)
     grid = gtk_grid_new();
     gtk_grid_set_column_spacing(GTK_GRID(grid), 2);
 
-    for (x = 0; x<amt; x++) {
-        if ((widgets[x].id != -1) && (widgets[x].position != -1)) {
+    for (y = 0; y<amt; y++) {
+        if ((widgets[y].id != -1) && (widgets[y].position != -1)) {
+            /* This widget has an on/off checkbox */
 
-            widget = create_on_off_button(&widgets[x]);
-            gtk_grid_attach(GTK_GRID(grid), widget, 0, x, 1, 1);
+            widget = create_on_off_button(&widgets[y]);
+            gtk_grid_attach(GTK_GRID(grid), widget, 0, y, 1, 1);
 
-            if (widgets[x].label)
-                y = 1;
+            if (widgets[y].label)
+                x = 1; /* push next object onto next x position */
             else
-                y = 0;
+                x = 0; /* next object appears in this same x position */
 
-        } else if (widgets[x].label) {
+        } else if (widgets[y].label) {
 
-            widget = gtk_label_new(widgets[x].label);
-            gtk_grid_attach(GTK_GRID(grid), widget, 0, x, 1, 1);
-            y = 0;
+            widget = gtk_label_new(widgets[y].label);
+            gtk_grid_attach(GTK_GRID(grid), widget, 0, y, 1, 1);
+            x = 0; /* put label in this same x position */
 
         } else {
 
             /* Default to 1 */
-            if (x == 0)
-                y = 1;
+            if (y == 0)
+                x = 1;
         }
 
-        container = create_widget_container(widgets[x].group,
-                                            widgets[x].group_amt,
-                                            widgets[x].type,
-                                            widgets[x].position);
+        container = create_widget_container(widgets[y].group,
+                                            widgets[y].group_amt,
+                                            widgets[y].type,
+                                            widgets[y].position);
 
-        gtk_grid_attach(GTK_GRID(grid), container, 1-y, x+y, 1, 1);
+        gtk_grid_attach(GTK_GRID(grid), container, 1-x, x+y, 1, 1);
     }
     
     gtk_box_pack_start(GTK_BOX(vbox), grid, FALSE, FALSE, 2);
