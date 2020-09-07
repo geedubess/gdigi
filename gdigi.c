@@ -1529,9 +1529,51 @@ int main(int argc, char *argv[]) {
                                       &stop_read_thread,
                                       TRUE, NULL);
 
-        if (request_who_am_i(&device_id, &family_id, &product_id) == FALSE) {
-            show_error_message(NULL, "No suitable reply from device");
-        } else {
+        /*
+         * ask for an id several times until it stops changing:
+         * Some devices don't always give the right answer the first time!
+         */
+
+        unsigned char tmp_device_id = 0x7F;
+        unsigned char tmp_family_id = 0x7F;
+        unsigned char tmp_product_id = 0x7F;
+        unsigned char last_device_id = 0x7F;
+        unsigned char last_family_id = 0x7F;
+        unsigned char last_product_id = 0x7F;
+        gboolean found = FALSE;
+        int i;
+
+        for(i=0; i<3; i++) {
+            if (request_who_am_i(&tmp_device_id, &tmp_family_id, &tmp_product_id) == FALSE) {
+                show_error_message(NULL, "No suitable reply from device");
+                break;
+            } else {
+                if (last_device_id  == tmp_device_id &&
+                    last_family_id  == tmp_family_id &&
+                    last_product_id == tmp_product_id) {
+
+                    debug_msg(DEBUG_VERBOSE, "device answered %d %d %d twice, found!",
+                            tmp_device_id, tmp_family_id, tmp_product_id);
+
+                    found = TRUE;
+                    device_id  = tmp_device_id;
+                    family_id  = tmp_family_id;
+                    product_id = tmp_product_id;
+                    break;
+                } else {
+                    debug_msg(DEBUG_VERBOSE,
+                            "device answered %d %d %d (last: %d %d %d), trying again",
+                            tmp_device_id, tmp_family_id, tmp_product_id,
+                            last_device_id, last_family_id, last_product_id);
+
+                    last_device_id  = tmp_device_id;
+                    last_family_id  = tmp_family_id;
+                    last_product_id = tmp_product_id;
+                }
+            }
+        }
+
+        if (found == TRUE) {
             Device *device = NULL;
 
             if (get_device_info(device_id, family_id, product_id, &device) == FALSE) {
