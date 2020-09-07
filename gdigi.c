@@ -413,14 +413,15 @@ MessageID get_message_id(GString *msg)
 
 static gboolean modifier_linkable_list_request_pending = FALSE;
 
+/* push a received message onto the received stack */
 void push_message(GString *msg)
 {
     MessageID msgid = get_message_id(msg);
     if (((unsigned char)msg->str[0] == 0xF0) &&
             ((unsigned char)msg->str[msg->len-1] == 0xF7)) {
-        debug_msg(DEBUG_VERBOSE, "Pushing correct message!");
+        debug_msg(DEBUG_VERBOSE, "Pushing correct message onto midi rx queue:");
     } else {
-        g_warning("Pushing incorrect message!");
+        g_warning("Pushing incorrect message onto midi rx queue!");
     }
 
     debug_msg_hex((unsigned char *)msg->str, msg->len);
