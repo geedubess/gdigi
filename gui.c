@@ -535,6 +535,10 @@ GtkWidget *create_grid(EffectSettings *settings, gint amt, GHashTable *widget_ta
         gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(widget), FALSE);
         gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(widget), GTK_UPDATE_IF_VALID);
 
+        /* todo: scan list of labels and calculate entry box width */
+        gtk_entry_set_width_chars(GTK_ENTRY(widget), 7);
+        gtk_entry_set_max_width_chars(GTK_ENTRY(widget), 7);
+
         if (custom == TRUE) {
             g_signal_connect(G_OBJECT(widget), "input", G_CALLBACK(custom_value_input_cb), settings[x].values);
             g_signal_connect(G_OBJECT(widget), "output", G_CALLBACK(custom_value_output_cb), settings[x].values);
