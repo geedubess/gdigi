@@ -1370,8 +1370,6 @@ static void action_open_preset_cb(GtkAction *action)
             }
             send_message(RECEIVE_PRESET_END, NULL, 0);
 
-            show_store_preset_window(window, preset->name);
-
             g_string_free(start, TRUE);
             preset_free(preset);
             loaded = TRUE;
