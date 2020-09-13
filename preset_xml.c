@@ -65,8 +65,7 @@ map_xml_value (XmlSettings *xml, EffectValues *values,  gint value)
         if (value > values->max || value < values->min) {
             g_warning("%s value %d out of range %0.1f %0.1f",
                       xml->label, value, xml->values->min, xml->values->max);
-        } 
-        {
+        } else {
             XmlLabel *labels = xml->xml_labels;
             guint labels_amt = xml->xml_labels_amt;
             gint i;
