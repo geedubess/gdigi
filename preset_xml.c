@@ -127,7 +127,7 @@ write_preset_to_xml(Preset *preset, gchar *filename)
     rc = xmlTextWriterSetIndent(writer, 1);
     rc = xmlTextWriterSetIndentString(writer, BAD_CAST "  ");
     /* Write the tag identifying type of prefix, schema version and ns. */
-    rc = xmlTextWriterStartElement(writer, BAD_CAST get_preset_filename(product_id));
+    rc = xmlTextWriterStartElement(writer, BAD_CAST get_preset_filename());
 
     rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "SchemaVersion",
                                      BAD_CAST "1.2");

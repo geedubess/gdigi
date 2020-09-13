@@ -1195,28 +1195,52 @@ static void action_show_about_dialog_cb(GtkAction *action)
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 typedef struct {
+    gint modelId;
     gchar *name;
     gchar *suffix;
 } SupportedFileTypes;
 
 SupportedFileTypes file_types[] = {
-    [ RP150]    = {"RP150Preset", "*.rp150p"},
-    [ RP155 ]   = {"RP155Preset", "*.rp155p"},
-    [ RP250 ]   = {"RP250Preset", "*.rp250p"},
-    [ RP255 ]   = {"RP255Preset", "*.rp255p"},
-    [ RP355 ]   = {"RP355Preset", "*.rp355p"},
-    [ RP500 ]   = {"RP500Preset", "*.rp500p"},
-    [ RP1000 ]  = {"RP1000Preset", "*.rp1000p"},
-    [ GNX4 ]    = {"GNX4 Preset", "*.g4p"},
-    [ GNX3000 ] = {"GNX3kPreset", "*.g3kp"},
+    {MODEL_ID(RP150),   "RP150Preset",   "*.rp150p"},
+    {MODEL_ID(RP155),   "RP155Preset",   "*.rp155p"},
+    {MODEL_ID(RP250),   "RP250Preset",   "*.rp250p"},
+    {MODEL_ID(RP255),   "RP255Preset",   "*.rp255p"},
+    {MODEL_ID(RP355),   "RP355Preset",   "*.rp355p"},
+    {MODEL_ID(RP500),   "RP500Preset",   "*.rp500p"},
+    {MODEL_ID(RP1000),  "RP1000Preset",  "*.rp1000p"},
+    {MODEL_ID(GNX4),    "GNX4Preset",    "*.g4p"},
+    {MODEL_ID(GNX3000), "GNX3kPreset",   "*.g3kp"},
+    {MODEL_ID(GSP1101), "GSP1101Preset", "*.gsp1101p"},
 };
 
 static guint n_file_types = G_N_ELEMENTS(file_types);
 
 gchar *
-get_preset_filename (int prod_id)
+get_preset_filename (void)
 {
-    return file_types[prod_id].name;
+    gint modelId = _MODEL_ID(family_id, product_id);
+    gint x;
+
+    for (x=0; x<n_file_types; x++) {
+        if (file_types[x].modelId == modelId)
+            return file_types[x].name;
+    }
+
+    return NULL;
+}
+
+gchar *
+get_preset_filesuffix (void)
+{
+    gint modelId = _MODEL_ID(family_id, product_id);
+    gint x;
+
+    for (x=0; x<n_file_types; x++) {
+        if (file_types[x].modelId == modelId)
+            return file_types[x].suffix;
+    }
+
+    return ".*unknown";
 }
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
@@ -1259,10 +1283,10 @@ static void action_open_preset_cb(GtkAction *action)
         gtk_file_filter_add_pattern(filter, file_types[x].suffix);
 
         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), current_filter);
-        if (x == product_id) {
+
+        if (file_types[x].modelId == _MODEL_ID(family_id, product_id)) {
             gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), current_filter);
         }
-
     }
 
     gboolean loaded = FALSE;
@@ -1380,6 +1404,7 @@ static void action_save_preset_cb(GtkAction *action)
                                          GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
                                          GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
                                          NULL);
+
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         gchar *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 
@@ -1389,9 +1414,18 @@ static void action_save_preset_cb(GtkAction *action)
             gchar real_filename[256];
             GList *list = get_current_preset();
             Preset *preset = create_preset_from_data(list);
+            gchar *path_pos;
 
-            snprintf(real_filename, 256, "%s.%s",
-                     filename, file_types[product_id].suffix + 2);
+            /* if suffix specified, leave it be, else append default */
+            /* find last '/' (path separator), then search for '.' */
+            path_pos = g_strrstr(filename, "/");
+
+            if (g_strrstr(path_pos, ".") == NULL) {
+                snprintf(real_filename, 256, "%s.%s",
+                     filename, get_preset_filesuffix() + 2);
+            } else {
+                snprintf(real_filename, 256, "%s", filename);
+            }
 
             gtk_widget_hide(dialog);
             write_preset_to_xml(preset, real_filename);

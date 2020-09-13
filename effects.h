@@ -95,18 +95,6 @@ typedef struct {
     PresetBank bank;
 } Banks;
 
-enum product_id {
-   RP150    = 1,
-   RP250    = 2,
-   GNX4     = 3,
-   GNX3000  = 4,
-   RP500    = 5,
-   RP1000   = 6,
-   RP155    = 7,
-   RP255    = 8,
-   RP355    = 9,
-};
-
 typedef struct {
     gchar *name;
     unsigned char family_id;

@@ -35,6 +35,38 @@ typedef enum {
 void debug_msg (debug_flags_t, char *fmt, ...);
 gboolean debug_flag_is_set (debug_flags_t flag);
 
+extern unsigned char device_id;
+extern unsigned char family_id;
+extern unsigned char product_id;
+
+#define MODEL_ID(m) _MODEL_ID(m##_FAMILY, m##_PRODUCT)
+#define _MODEL_ID(f,p) ((f)<<8 | (p))
+
+#define INIT_FAMILY  (0x7F)
+#define INIT_PRODUCT (0x7F)
+#define INIT_DEVICE  (0x7F)
+
+#define RP150_FAMILY   (0x5E)
+#define RP155_FAMILY   (0x5E)
+#define RP250_FAMILY   (0x5E)
+#define RP255_FAMILY   (0x5E)
+#define RP355_FAMILY   (0x5E)
+#define RP500_FAMILY   (0x5E)
+#define RP1000_FAMILY  (0x5E)
+#define GNX4_FAMILY    (0x5C)
+#define GNX3000_FAMILY (0x5C)
+#define GSP1101_FAMILY (0x5F)
+
+#define RP150_PRODUCT   (0x1)
+#define RP155_PRODUCT   (0x7)
+#define RP250_PRODUCT   (0x2)
+#define RP255_PRODUCT   (0x8)
+#define RP355_PRODUCT   (0x9)
+#define RP500_PRODUCT   (0x5)
+#define RP1000_PRODUCT  (0x6)
+#define GNX4_PRODUCT    (0x3)
+#define GNX3000_PRODUCT (0x4)
+#define GSP1101_PRODUCT (0x1)
 #define GNX_CHANNEL_POSITION 7
 #define GNX_CHANNEL_AMP 260
 #define GNX_WARP 261

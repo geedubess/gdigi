@@ -24,9 +24,15 @@
 #include "gdigi_xml.h"
 #include "gui.h"
 
-static unsigned char device_id = 0x7F;
-static unsigned char family_id = 0x7F;
-unsigned char product_id = 0x7F;
+/*
+ * These initial values are used when initiating communication
+ * with the device; the returned values are stored here to be
+ * used in subsequent communications. They are also used to
+ * select functionality per device, eg import/export of files.
+ */
+unsigned char device_id = INIT_DEVICE;
+unsigned char family_id = INIT_FAMILY;
+unsigned char product_id = INIT_PRODUCT;
 
 static snd_rawmidi_t *output = NULL;
 static snd_rawmidi_t *input = NULL;
