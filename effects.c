@@ -4646,10 +4646,11 @@ static void modifier_group_free(ModifierGroup *modifier_group)
 
     int x;
     for (x=0; x<modifier_group->group_amt; x++) {
-        if (modifier_group->group[x].settings)
+        if (modifier_group->group[x].settings) {
             /* The settings for the EXP_POSITION are dynamically allocated. */
             modifier_settings_exp_free(modifier_group->group[x].settings);
             effect_settings_free(modifier_group->group[x].settings);
+        }
     }
     g_slice_free1(modifier_group->group_amt * sizeof(EffectGroup),
                   modifier_group->group);
