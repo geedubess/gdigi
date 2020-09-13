@@ -496,7 +496,7 @@ enum {
 #define GNX3K_GATE_ATTACK 706
 
 /* available only in Gate mode */
-#define NOISEGATE_GATE_TRESHOLD 710
+#define NOISEGATE_GATE_THRESHOLD 710
 /* available only in Swell mode */
 #define NOISEGATE_SWELL_SENS    711
 /* available in both Gate and Swell modes */

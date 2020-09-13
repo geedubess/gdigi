@@ -1097,18 +1097,18 @@ static EffectSettings rp500_eq_settings[] = {
 };
 
 static EffectSettings noisegate_silencer_settings[] = {
-    {"Threshold", NOISEGATE_GATE_TRESHOLD, NOISEGATE_POSITION, &values_0_to_99},
+    {"Threshold", NOISEGATE_GATE_THRESHOLD, NOISEGATE_POSITION, &values_0_to_99},
     {"Attack", GNX3K_GATE_ATTACK, NOISEGATE_POSITION, &values_0_to_9},
 };
 
 static EffectSettings noisegate_pluck_settings[] = {
-    {"Threshold", NOISEGATE_GATE_TRESHOLD, NOISEGATE_POSITION, &values_0_to_99},
+    {"Threshold", NOISEGATE_GATE_THRESHOLD, NOISEGATE_POSITION, &values_0_to_99},
     {"Attack", GNX3K_GATE_ATTACK, NOISEGATE_POSITION, &values_0_to_9},
     {"Sens", NOISEGATE_SWELL_SENS, NOISEGATE_POSITION, &values_0_to_99},
 };
 
 static EffectSettings noisegate_gate_settings[] = {
-    {"Threshold", NOISEGATE_GATE_TRESHOLD, NOISEGATE_POSITION, &values_0_to_99},
+    {"Threshold", NOISEGATE_GATE_THRESHOLD, NOISEGATE_POSITION, &values_0_to_99},
     {"Attack", NOISEGATE_ATTACK, NOISEGATE_POSITION, &values_0_to_99},
     {"Release", NOISEGATE_RELEASE, NOISEGATE_POSITION, &values_0_to_99},
     {"Attn", NOISEGATE_ATTN, NOISEGATE_POSITION, &values_0_to_99},
@@ -3457,7 +3457,7 @@ static Modifier modifiers[] = {
     {"EQ B Presence", EQ_PRESENCE, EQ_B_POSITION, &values_eq_db},
     {"Gate Enable", NOISEGATE_ON_OFF, NOISEGATE_POSITION, &values_on_off},
     {"Gate Pluck Sens", NOISEGATE_SWELL_SENS, NOISEGATE_POSITION, &values_0_to_99},
-    {"Gate Threshold", NOISEGATE_GATE_TRESHOLD, NOISEGATE_POSITION, &values_0_to_99},
+    {"Gate Threshold", NOISEGATE_GATE_THRESHOLD, NOISEGATE_POSITION, &values_0_to_99},
     {"Gate Attack", NOISEGATE_ATTACK, NOISEGATE_POSITION, &values_0_to_99},
     {"Gate Release", NOISEGATE_RELEASE, NOISEGATE_POSITION, &values_0_to_99},
     {"Gate Attenuation", NOISEGATE_ATTN, NOISEGATE_POSITION, &values_0_to_99},
@@ -4261,7 +4261,7 @@ XmlSettings xml_settings[] = {
     {NOISEGATE_TYPE, NOISEGATE_POSITION, "Gate Type", &values_gate_type, xml_noisegate_labels, G_N_ELEMENTS(xml_noisegate_labels)},
     {NOISEGATE_ON_OFF, NOISEGATE_POSITION, "Gate Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
     {NOISEGATE_SWELL_SENS, NOISEGATE_POSITION, "Gate Pluck Sens", &values_0_to_99,},
-    {NOISEGATE_GATE_TRESHOLD, NOISEGATE_POSITION, "Gate Threshold", &values_0_to_99,},
+    {NOISEGATE_GATE_THRESHOLD, NOISEGATE_POSITION, "Gate Threshold", &values_0_to_99,},
     {NOISEGATE_ATTACK, NOISEGATE_POSITION, "Gate Attack", &values_0_to_99,},
     {NOISEGATE_RELEASE, NOISEGATE_POSITION, "Gate Release", &values_0_to_99,},
     {NOISEGATE_ATTN, NOISEGATE_POSITION, "Gate Attenuation", &values_0_to_99,},
