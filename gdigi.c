@@ -140,7 +140,7 @@ format_value (XmlSettings *xml, guint value)
     gchar          *suffix = "";
     gdouble         step = 1.0;
     gint            offset = 0;
-    gboolean        decimal = FALSE;
+    gint            decimal = 0;
 
     values = xml->values;
     vtype = values->type;
@@ -166,7 +166,7 @@ format_value (XmlSettings *xml, guint value)
     }
 
     if (vtype & VALUE_TYPE_DECIMAL) {
-        decimal = TRUE;
+        decimal = values->decimal;
         vtype &= ~VALUE_TYPE_DECIMAL;
     }
 
@@ -186,7 +186,7 @@ format_value (XmlSettings *xml, guint value)
     {
         if (decimal) {
             double dvalue = ((gint)value + offset) * step;
-                g_string_printf(buf, "%0.2f%s", dvalue, suffix);
+                g_string_printf(buf, "%0.*f%s", decimal, dvalue, suffix);
         } else {
             gint ivalue = ((gint)value + offset) * step;
             g_string_printf(buf, "%d%s", ivalue, suffix);

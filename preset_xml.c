@@ -171,7 +171,7 @@ write_preset_to_xml(Preset *preset, gchar *filename)
             gchar *suffix = "";
             gdouble step = 1.0;
             gint offset = 0;
-            gboolean        decimal = FALSE;
+            gint decimal = 0;
             EffectValues *values = NULL;
 
             rc = xmlTextWriterWriteElement(writer, BAD_CAST "Name",
@@ -200,7 +200,7 @@ write_preset_to_xml(Preset *preset, gchar *filename)
             }
 
             if (type & VALUE_TYPE_DECIMAL) {
-                decimal = TRUE;
+                decimal = values->decimal;
                 type &= ~VALUE_TYPE_DECIMAL;
             }
 
@@ -224,7 +224,7 @@ write_preset_to_xml(Preset *preset, gchar *filename)
                 if (decimal) {
                     double value = (param->value + offset) * step;
                     rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "Text",
-                            "%0.2f%s", value, suffix);
+                            "%0.*f%s", decimal, value, suffix);
                 } else {
                     gint value = (param->value + offset) * step;
                     rc = xmlTextWriterWriteFormatElement(writer, BAD_CAST "Text",
