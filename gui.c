@@ -241,8 +241,9 @@ static gboolean custom_value_input_cb(GtkSpinButton *spin, gdouble *new_val, Eff
 static gboolean custom_value_output_cb(GtkSpinButton *spin, EffectValues *values)
 {
     GtkAdjustment *adj;
-    gchar *text;
     gdouble value;
+    gchar *text = NULL;
+    gboolean textAlloc = FALSE;
 
     adj = gtk_spin_button_get_adjustment(spin);
     value = gtk_adjustment_get_value(adj);
@@ -257,10 +258,8 @@ static gboolean custom_value_output_cb(GtkSpinButton *spin, EffectValues *values
     }
 
     if (values->type & VALUE_TYPE_LABEL) {
-        gtk_entry_set_text(GTK_ENTRY(spin), values->labels[(gint) value - (gint) values->min]);
-        return TRUE;
-    }
-
+        text = values->labels[(gint) value - (gint) values->min];
+    } else {
     if (values->type & VALUE_TYPE_OFFSET) {
         value += (gdouble) values->offset;
     }
@@ -275,14 +274,24 @@ static gboolean custom_value_output_cb(GtkSpinButton *spin, EffectValues *values
         text = g_strdup_printf("%d", (gint) value);
     }
 
+        textAlloc = TRUE;
+    }
+
     if (values->type & VALUE_TYPE_SUFFIX) {
         gchar *tmp;
         tmp = g_strdup_printf("%s %s", text, values->suffix);
+        if (textAlloc == TRUE)
         g_free(text);
+        textAlloc = TRUE;
         text = tmp;
     }
 
+    int width = strlen(text) + 1;
+    gtk_entry_set_width_chars(GTK_ENTRY(spin), width);
+    gtk_entry_set_max_width_chars(GTK_ENTRY(spin), width);
     gtk_entry_set_text(GTK_ENTRY(spin), text);
+
+    if (textAlloc == TRUE)
     g_free(text);
 
     return TRUE;
@@ -534,10 +543,6 @@ GtkWidget *create_grid(EffectSettings *settings, gint amt, GHashTable *widget_ta
         widget = gtk_spin_button_new(GTK_ADJUSTMENT(adj), 1.0, 0);
         gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(widget), FALSE);
         gtk_spin_button_set_update_policy(GTK_SPIN_BUTTON(widget), GTK_UPDATE_IF_VALID);
-
-        /* todo: scan list of labels and calculate entry box width */
-        gtk_entry_set_width_chars(GTK_ENTRY(widget), 7);
-        gtk_entry_set_max_width_chars(GTK_ENTRY(widget), 7);
 
         if (custom == TRUE) {
             g_signal_connect(G_OBJECT(widget), "input", G_CALLBACK(custom_value_input_cb), settings[x].values);
