@@ -347,8 +347,11 @@ static EffectValues values_0_to_49 = {
     .min = 0.0, .max = 49.0, .type = VALUE_TYPE_PLAIN,
 };
 
-static EffectValues values_0_to_15 = {
-    .min = 0.0, .max = 15.0, .type = VALUE_TYPE_PLAIN,
+static EffectValues values_0_to_150 = {
+    // : reverb predelay: 0-150ms
+    .min = 0.0, .max = 15.0,
+    .type = VALUE_TYPE_PLAIN | VALUE_TYPE_STEP | VALUE_TYPE_SUFFIX,
+    .step = 10.0, .suffix = "ms",
 };
 
 static EffectValues values_0_to_20 = {
@@ -522,23 +525,28 @@ static EffectValues values_delay_time_110_870 = {
 };
 
 static EffectValues values_delay_time_0_2000 = {
-    /** \todo make this display properly */
-    0.0, 2000.0, .type = VALUE_TYPE_PLAIN,
+    0.0, 2000.0,
+    .type = VALUE_TYPE_PLAIN,
+    .suffix = "ms",
 };
 
 static EffectValues values_delay_time_0_4650 = {
-    /** \todo make this display properly */
-    0.0, 4650.0, .type = VALUE_TYPE_PLAIN,
+    0.0, 4650.0,
+    .type = VALUE_TYPE_SUFFIX,
+    .suffix = "ms",
 };
 
 static EffectValues values_delay_time_0_4990 = {
-    /** \todo make this display properly */
-    0.0, 4990.0, .type = VALUE_TYPE_PLAIN,
+    // 0 = 10ms : 4990 = 5.000s
+    .min = 0.0, .max = 4990.0, .offset = 10,
+    .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET,
+    .suffix = "ms",
 };
 
 static EffectValues values_delay_time_0_5000 = {
-    /** \todo make this display properly */
-    0.0, 5000.0, .type = VALUE_TYPE_PLAIN,
+    .min = 0.0, .max = 5000.0,
+    .type = VALUE_TYPE_SUFFIX,
+    .suffix = "ms",
 };
 
 static EffectValues values_delay_repeats_extra = {
@@ -559,7 +567,7 @@ static EffectValues values_delay_thresh = {
     0.0, 100.0, .type = VALUE_TYPE_PLAIN,
 };
 
-static EffectValues values_delay_repeat_rate_24_310 = {
+static EffectValues values_delay_time_24_310 = {
     .min = 0.0, .max = 286.0,
     .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET,
     .suffix = "ms", .offset = 24,
@@ -580,10 +588,6 @@ EffectValues values_on_off = {
     .min = 0.0, .max = 1.0,
     .type = VALUE_TYPE_LABEL,
     .labels = on_off_labels,
-};
-
-EffectValues values_posid = {
-    .type = VALUE_TYPE_POSID,
 };
 
 static EffectValues values_odd_even = {
@@ -772,7 +776,7 @@ static EffectSettings gnx3k_wah_settings[] = {
 static EffectSettings wah_settings[] = {
     {"Min", WAH_MIN, WAH_POSITION_MIN_MAX, &values_0_to_99},
     {"Max", WAH_MAX, WAH_POSITION_MIN_MAX, &values_0_to_99},
-    {"Level", WAH_VOLUME_BOOST, WAH_POSITION, &values_db_boost},
+    {"Level", WAH_LEVEL, WAH_POSITION, &values_db_boost},
 };
 
 static EffectSettings gnx3k_whammy_settings[] = {
@@ -1516,7 +1520,7 @@ static EffectSettings delay_echoplex_settings[] = {
 };
 
 static EffectSettings rp500_delay_digital_settings[] = {
-    {"Tap Time", DELAY_TAP_TIME, DELAY_POSITION, &values_delay_time_0_5000},
+    {"Tap Time", DELAY_TAP_TIME_0_5000, DELAY_POSITION, &values_delay_time_0_5000},
     {"Repeats", DELAY_REPEATS, DELAY_POSITION, &values_delay_repeats},
     {"Duck Thresh", DELAY_DUCK_THRESH, DELAY_POSITION, &values_0_to_99},
     {"Duck Level", DELAY_DUCK_LEVEL, DELAY_POSITION, &values_0_to_99},
@@ -1524,19 +1528,19 @@ static EffectSettings rp500_delay_digital_settings[] = {
 };
 
 static EffectSettings rp500_delay_analog_settings[] = {
-    {"Tap Time", DELAY_TAP_TIME, DELAY_POSITION, &values_delay_time_0_5000},
+    {"Tap Time", DELAY_TAP_TIME_0_5000, DELAY_POSITION, &values_delay_time_0_5000},
     {"Repeats", DELAY_REPEATS, DELAY_POSITION, &values_delay_repeats},
     {"Level", DELAY_LEVEL, DELAY_POSITION, &values_0_to_99},
 };
 
 static EffectSettings rp500_delay_dm_settings[] = {
-    {"Repeat Rate", DELAY_REPEAT_RATE, DELAY_POSITION, &values_delay_repeat_rate_24_310},
+    {"Repeat Rate", DELAY_TAP_TIME_0_286, DELAY_POSITION, &values_delay_time_24_310},
     {"Echo", DELAY_ECHO, DELAY_POSITION, &values_0_to_99},
     {"Intensity", DELAY_INTENSITY, DELAY_POSITION, &values_0_to_99},
 };
 
 static EffectSettings rp500_delay_echoplex_settings[] = {
-    {"Time", DELAY_TIME_0_760, DELAY_POSITION, &values_delay_time_110_870},
+    {"Time", DELAY_TAP_TIME_0_760, DELAY_POSITION, &values_delay_time_110_870},
     {"Volume", DELAY_VOLUME, DELAY_POSITION, &values_0_to_99},
     {"Repeats", DELAY_REPEATS_0_99, DELAY_POSITION, &values_0_to_99},
 };
@@ -1549,7 +1553,7 @@ static EffectSettings rp500_delay_modulated_settings[] = {
 };
 
 static EffectSettings rp500_delay_pong_settings[] = {
-    {"Tap Time", DELAY_TAP_TIME, DELAY_POSITION, &values_delay_time_0_5000},
+    {"Tap Time", DELAY_TAP_TIME_0_5000, DELAY_POSITION, &values_delay_time_0_5000},
     {"Repeats", DELAY_REPEATS, DELAY_POSITION, &values_delay_repeats},
     {"Duck Thresh", DELAY_DUCK_THRESH, DELAY_POSITION, &values_0_to_99},
     {"Duck Level", DELAY_DUCK_LEVEL, DELAY_POSITION, &values_0_to_99},
@@ -1571,13 +1575,13 @@ static EffectSettings rp500_delay_tape_settings[] = {
 };
 
 static EffectSettings rp1000_delay_lo_fi_settings[] = {
-    {"Time", DELAY_TAP_TIME, DELAY_POSITION, &values_delay_time_0_5000},
+    {"Time", DELAY_TAP_TIME_0_5000, DELAY_POSITION, &values_delay_time_0_5000},
     {"Level", DELAY_LEVEL, DELAY_POSITION, &values_0_to_99},
     {"Repeats", DELAY_REPEATS_0_99, DELAY_POSITION, &values_0_to_99},
 };
 
 static EffectSettings rp1000_delay_2_tap_settings[] = {
-    {"Time", DELAY_TAP_TIME, DELAY_POSITION, &values_delay_time_0_5000},
+    {"Time", DELAY_TAP_TIME_0_5000, DELAY_POSITION, &values_delay_time_0_5000},
     {"Repeats", DELAY_REPEATS, DELAY_POSITION, &values_delay_repeats},
     {"Ratio", DELAY_TAP_RATIO, DELAY_POSITION, &values_delay_repeats},
     {"Mix", DELAY_LEVEL, DELAY_POSITION, &values_0_to_99},
@@ -1588,7 +1592,7 @@ static EffectSettings reverb_twin_settings[] = {
 };
 
 static EffectSettings gnx3k_reverb_settings[] = {
-    {"Predelay", REVERB_PREDELAY, REVERB_POSITION, &values_0_to_15},
+    {"Predelay", REVERB_PREDELAY, REVERB_POSITION, &values_0_to_150},
     {"Decay", REVERB_DECAY, REVERB_POSITION, &values_0_to_99},
     {"Damping", REVERB_DAMPING, REVERB_POSITION, &values_0_to_99},
     {"Balance", REVERB_BALANCE, REVERB_POSITION, &values_balance},
@@ -1610,7 +1614,7 @@ static EffectSettings lfo2_settings[] = {
 };
 
 static EffectSettings reverb_lex_settings[] = {
-    {"Predelay", REVERB_PREDELAY, REVERB_POSITION, &values_0_to_15},
+    {"Predelay", REVERB_PREDELAY, REVERB_POSITION, &values_0_to_150},
     {"Decay", REVERB_DECAY, REVERB_POSITION, &values_0_to_99},
     {"Liveliness", REVERB_LIVELINESS, REVERB_POSITION, &values_0_to_99},
     {"Level", REVERB_LEVEL, REVERB_POSITION, &values_0_to_99},
@@ -3348,6 +3352,7 @@ static Modifier modifiers[] = {
     {"None", 0, 0, NULL},
     {"Pickup Enable", PICKUP_ON_OFF, PICKUP_POSITION, &values_on_off},
     {"Pickup Type", PICKUP_TYPE, PICKUP_POSITION, &values_pickup_type},
+
     {"Compressor Enable", COMP_ON_OFF, COMP_POSITION, &values_on_off},
     {"Compressor Sustain", COMP_SUSTAIN, COMP_POSITION, &values_0_to_99},
     {"Compressor Tone", COMP_TONE, COMP_POSITION, &values_0_to_99},
@@ -3355,6 +3360,7 @@ static Modifier modifiers[] = {
     {"Compressor Attack", COMP_ATTACK, COMP_POSITION, &values_0_to_99},
     {"Compressor Sensitivity", COMP_SENSITIVITY, COMP_POSITION, &values_0_to_99},
     {"Compressor Output", COMP_OUTPUT, COMP_POSITION, &values_0_to_99},
+
     {"Dist Enable", DIST_ON_OFF, DIST_POSITION, &values_on_off},
     {"Dist Drive", DIST_SCREAMER_DRIVE, DIST_POSITION, &values_0_to_99},
     {"Dist Tone", DIST_SCREAMER_TONE, DIST_POSITION, &values_0_to_99},
@@ -3429,6 +3435,7 @@ static Modifier modifiers[] = {
     {"Dist Sustain", DIST_MP_SUSTAIN, DIST_POSITION, &values_0_to_99},
     {"Dist Tone", DIST_MP_TONE, DIST_POSITION, &values_0_to_99},
     {"Dist Volume", DIST_MP_VOLUME, DIST_POSITION, &values_0_to_99},
+
     {"Amp Enable", AMP_ON_OFF, AMP_A_POSITION, &values_on_off},
     {"Amp Gain", AMP_GAIN, AMP_A_POSITION, &values_0_to_99},
     {"Amp Level", AMP_LEVEL, AMP_A_POSITION, &values_0_to_99},
@@ -3436,10 +3443,11 @@ static Modifier modifiers[] = {
     {"Bass", AMP_BASS, AMP_A_POSITION, &values_1_to_10_step_0p1},
     {"Mid", AMP_MID, AMP_A_POSITION, &values_1_to_10_step_0p1},
     {"Treble", AMP_TREBLE, AMP_A_POSITION, &values_1_to_10_step_0p1},
- 
+
     {"Amp B Enable", AMP_ON_OFF, AMP_B_POSITION, &values_on_off},
     {"Amp B Gain", AMP_GAIN, AMP_B_POSITION, &values_0_to_99},
     {"Amp B Level", AMP_LEVEL, AMP_B_POSITION, &values_0_to_99},
+
     {"EQ Enable", EQ_ENABLE, EQ_A_POSITION, &values_on_off},
     {"EQ Bass", EQ_BASS, EQ_A_POSITION, &values_eq_db},
     {"EQ Mid", EQ_MID, EQ_A_POSITION, &values_eq_db},
@@ -3568,14 +3576,14 @@ static Modifier modifiers[] = {
     {"Reverb Decay", REVERB_DECAY, REVERB_POSITION, &values_0_to_99},
     {"Reverb Liveliness", REVERB_LIVELINESS, REVERB_POSITION, &values_0_to_99},
     {"Reverb Level", REVERB_LEVEL, REVERB_POSITION, &values_0_to_99},
-    {"Reverb Predelay", REVERB_PREDELAY, REVERB_POSITION, &values_0_to_15},
+    {"Reverb Predelay", REVERB_PREDELAY, REVERB_POSITION, &values_0_to_150},
     {"Volume Pre FX", PRESET_LEVEL, VOLUME_PRE_FX_POSITION, &values_0_to_99},
     {"Volume Post FX", PRESET_LEVEL, VOLUME_POST_FX_POSITION, &values_0_to_99},
-    
+
     {"Delay Intensity", DELAY_INTENSITY, DELAY_POSITION, &values_0_to_99},
     {"Delay Tempo Division", DELAY_MULTIPLIER, DELAY_POSITION, &values_delay_mult},
     {"Delay Echo", DELAY_ECHO, DELAY_POSITION, &values_0_to_99},
-    
+
     {"Amp Loop Enable", AMP_LOOP_ON_OFF, AMP_LOOP_POSITION, &values_on_off},
     {"Stomp Loop Enable", STOMP_LOOP_ON_OFF, STOMP_LOOP_POSITION, &values_0_to_1},
 };
@@ -4399,7 +4407,7 @@ XmlSettings xml_settings[] = {
     {REVERB_DECAY, REVERB_POSITION, "Reverb Decay", &values_0_to_99,},
     {REVERB_LIVELINESS, REVERB_POSITION, "Reverb Liveliness", &values_0_to_99,},
     {REVERB_LEVEL, REVERB_POSITION, "Reverb Level", &values_0_to_99,},
-    {REVERB_PREDELAY, REVERB_POSITION, "Reverb Predelay", &values_0_to_15,},
+    {REVERB_PREDELAY, REVERB_POSITION, "Reverb Predelay", &values_0_to_150,},
 
     {PRESET_LEVEL, VOLUME_PRE_FX_POSITION, "Volume Pre FX", &values_0_to_99,},
     {PRESET_LEVEL, VOLUME_POST_FX_POSITION, "Volume Post FX", &values_0_to_99,}, 
@@ -4407,7 +4415,7 @@ XmlSettings xml_settings[] = {
     {WAH_TYPE, WAH_POSITION, "Wah Type", &values_wah_type, xml_wah_labels, G_N_ELEMENTS(xml_wah_labels)},
     {WAH_ON_OFF, WAH_POSITION, "Wah Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
     {WAH_PEDAL_POSITION, WAH_POSITION, "Wah Position", &values_0_to_99,},
-    {WAH_VOLUME_BOOST, WAH_POSITION, "Wah Vol. Boost", &values_db_boost,},
+    {WAH_LEVEL, WAH_POSITION, "Wah Vol. Boost", &values_db_boost,},
 
     {PRESET_LEVEL, PRESET_POSITION, "Preset Level", &values_0_to_99,},
 
@@ -4481,7 +4489,7 @@ XmlSettings xml_settings[] = {
     {FX_LIB_LEVEL_MAX3, LIB_POSITION_B, "FxLib B LvlMax3", &values_0_to_99,},
     
     // RP1000 values
-    {DELAY_TAP_TIME, DELAY_POSITION, "Delay Tap Time", &values_delay_time,},
+    {DELAY_TAP_TIME_0_5000, DELAY_POSITION, "Delay Tap Time", &values_delay_time_0_5000,},
     {DELAY_MULTIPLIER, DELAY_POSITION, "Delay Tempo Division", &values_delay_mult, xml_delay_mult_labels, G_N_ELEMENTS(xml_delay_mult_labels)},
     {MOD_PRE_POST, STOMP_LOOP_POSITION, "Stomp Pre/Post", &values_pre_post, xml_pre_post_labels, G_N_ELEMENTS(xml_pre_post_labels)},
     {STOMP_LOOP_ON_OFF, STOMP_LOOP_POSITION, "Stomp Loop Enable", &values_0_to_1,},
