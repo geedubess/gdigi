@@ -239,7 +239,7 @@ write_preset_to_xml(Preset *preset, gchar *filename)
                 break;
 
             default:
-                g_warning("Unhandled value type %d", type);
+                g_warning("write_preset_to_xml: Unhandled value type %d", type);
                 break;
             }
         }

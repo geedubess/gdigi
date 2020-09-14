@@ -202,7 +202,7 @@ format_value (XmlSettings *xml, guint value)
         break;
 
     default:
-        g_warning("Unhandled value type %d", vtype);
+        g_warning("format_value: Unhandled value type %d", vtype);
         break;
     }
 
