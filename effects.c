@@ -286,8 +286,33 @@ static gchar *amp_channel_labels[] = {
     NULL,
 };
 
+static gchar *amp_loop_input_select_labels[] = {
+    "Stereo",
+    "Left",
+    "Right",
+    "Sum",
+    NULL,
+};
+
+static gchar *amp_preamp_loop_select_labels[] = {
+    "Internal",
+    "External",
+    NULL,
+};
+
+static gchar *amp_loop_select_send_labels[] = {
+    "Post Distortion",
+    "Post Amp",
+    NULL,
+};
+
 static gchar *rhold_labels[] = {
     "RHold",
+    NULL,
+};
+
+static gchar *seamless_labels[] = {
+    "Hold",
     NULL,
 };
 
@@ -297,6 +322,26 @@ static gchar *delay_mult_labels[] = {
     "Dot Eighth",
     "Eighth",
     "3 Quarter",
+    NULL,
+};
+
+static gchar *delay_division_labels[] = {
+    "Sixteenth",
+    "3 Eighth",
+    "Eighth",
+    "3 Quarter",
+    "Dot Eighth",
+    "Quarter",
+    "3 Half",
+    "Dot Quarter",
+    "Half",
+    "Whole",
+    NULL,
+};
+
+static gchar *stereo_mono_labels[] = {
+    "Stereo",
+    "Mono",
     NULL,
 };
 
@@ -407,6 +452,13 @@ static EffectValues values_db_boost = {
     .suffix = "dB",
 };
 
+static EffectValues values_db_m6_to_12 = {
+    .min = 0.0, .max = 18.0,
+    .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET,
+    .suffix = "dB",
+    .offset = -6,
+};
+
 static EffectValues values_eq_bass_hz = {
     .min = 0.0, .max = 250.0,
     .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET,
@@ -463,6 +515,33 @@ static EffectValues values_waveform = {
 static EffectValues values_balance = {
     /** \todo make this display properly */
     0.0, 198.0, .type = VALUE_TYPE_PLAIN,
+};
+
+static EffectValues values_pan_percent_right = {
+    .min = 51.0, .max = 99.0,
+    .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET | VALUE_TYPE_STEP,
+    .suffix = "%L (100%R)", .offset = -99, .step = -2,
+};
+
+static EffectValues values_pan_percent_center = {
+    .min = 49.0, .max = 50.0,
+    .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET | VALUE_TYPE_STEP | VALUE_TYPE_EXTRA,
+    .suffix = "C", .offset = -50, .step = 2,
+    .extra = &values_pan_percent_right,
+};
+
+static EffectValues values_pan_percent = {
+    /* 0 (100% left/0% right)
+     * 48 (96/100)
+     * 49 (100/100)
+     * 50 (100/100)
+     * 51 (100/96)
+     * 99 (0% left/100% right)
+     */
+    .min = 0.0, .max = 48.0,
+    .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET | VALUE_TYPE_STEP | VALUE_TYPE_EXTRA,
+    .suffix = "%R (100%L)", .offset = 0, .step = 2,
+    .extra = &values_pan_percent_center,
 };
 
 static EffectValues values_synth_talk_release = {
@@ -584,6 +663,72 @@ static EffectValues values_delay_mult = {
     .labels = delay_mult_labels,
 };
 
+static EffectValues values_delay_division = {
+    .min = 0.0, .max = 9.0,
+    .type = VALUE_TYPE_LABEL,
+    .labels = delay_division_labels,
+};
+
+static EffectValues values_stereo_mono = {
+    .min = 0.0, .max = 1.0,
+    .type = VALUE_TYPE_LABEL,
+    .labels = stereo_mono_labels,
+};
+
+// only applicable to SEAMLESS_HOLD, not SEAMLESS_RAMP
+static EffectValues values_seamless_hold = {
+    .min = 191.0, .max = 191.0,
+    .type = VALUE_TYPE_LABEL,
+    .labels = seamless_labels, // TODO: verify
+};
+
+static EffectValues values_seamless_extra = {
+    /* display as 1.0s (100) to 10.0s (190) */
+    .min = 100.0, .max = 190.0,
+    .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET |
+            VALUE_TYPE_STEP | VALUE_TYPE_DECIMAL | VALUE_TYPE_EXTRA,
+    .suffix = "s", .offset = -90,
+    .step = 0.1, .decimal = 1,
+    .extra = &values_seamless_hold,
+};
+
+static EffectValues values_seamless = {
+    /* display as 0ms (0) to 99ms (99) */
+    .min = 0.0, .max = 99.0,
+    .type = VALUE_TYPE_EXTRA | VALUE_TYPE_SUFFIX | VALUE_TYPE_STEP,
+    .step = 10.0,
+    .suffix = "ms",
+    .extra = &values_seamless_extra,
+};
+
+// note bug in X-Edit/GSP1101:
+// a seamless hold of 1.0s shows '1.1s' in X-edit exported xml (1.0s on hardware).
+// display value in gui matching hardware, but offset when working with xml.
+// TODO: verify w/ x-edit across ms and s ranges
+// 99:  990ms(xml)  990ms(hw)   [hold]
+// 100  1.1sec(xml) 1.0ssec(hw) [hold]
+// 109: 2.0sec(xml) 1.9sec(hw)  [ramp]
+// 110: 2.1sec(xml) 2.0sec(hw)  [ramp]
+static EffectValues values_seamless_offset_extra = {
+    /* display as 1.1s (100) to 10.1s (190) */
+    .min = 100.0, .max = 190.0,
+    .type = VALUE_TYPE_SUFFIX | VALUE_TYPE_OFFSET |
+            VALUE_TYPE_STEP | VALUE_TYPE_DECIMAL | VALUE_TYPE_EXTRA,
+    .suffix = "sec",
+    .offset = -89,
+    .step = 0.1, .decimal = 1,
+    .extra = &values_seamless_hold,
+};
+
+static EffectValues values_seamless_offset = {
+    /* save to xml as 0ms (0) to 990ms (99) */
+    .min = 0.0, .max = 99.0,
+    .type = VALUE_TYPE_EXTRA | VALUE_TYPE_SUFFIX | VALUE_TYPE_STEP,
+    .step = 10.0,
+    .suffix = "ms",
+    .extra = &values_seamless_offset_extra,
+};
+
 EffectValues values_on_off = {
     .min = 0.0, .max = 1.0,
     .type = VALUE_TYPE_LABEL,
@@ -626,8 +771,26 @@ static EffectValues values_comp_type = {
 };
 
 static EffectValues values_dist_type = {
-    .min = 1280.0, .max = 1302.0,
+    .min = 1280.0, .max = 1424.0,
     .type = VALUE_TYPE_LABEL,
+};
+
+static EffectValues values_amp_loop_input_select = {
+    .min = 0.0, .max = 3.0,
+    .type = VALUE_TYPE_LABEL,
+    .labels = amp_loop_input_select_labels,
+};
+
+static EffectValues values_amp_loop_select_send = {
+    .min = 0.0, .max = 1.0,
+    .type = VALUE_TYPE_LABEL,
+    .labels = amp_loop_select_send_labels,
+};
+
+static EffectValues values_amp_preamp_loop_select = {
+    .min = 0.0, .max = 1.0,
+    .type = VALUE_TYPE_LABEL,
+    .labels = amp_preamp_loop_select_labels,
 };
 
 static EffectValues values_amp_type = {
@@ -636,7 +799,7 @@ static EffectValues values_amp_type = {
 };
 
 static EffectValues values_cab_type = {
-    .min = 570.0, .max = 627.0,
+    .min = 570.0, .max = 736.0,
     .type = VALUE_TYPE_LABEL,
 };
 
@@ -744,6 +907,11 @@ static EffectValues values_rp_mix = {
     .min = 0.0, .max = 100.0, .type = VALUE_TYPE_PLAIN,
 };
 
+static EffectValues values_link_controller = {
+    .min = 2048.0, .max = 2066.0,
+    .type = VALUE_TYPE_LABEL,
+};
+
 static EffectSettings global_settings[] = {
     {"USB/RP Mix", USB_AUDIO_PLAYBACK_MIX, GLOBAL_POSITION, &values_rp_mix},
     {"USB Level", USB_AUDIO_LEVEL, GLOBAL_POSITION, &values_m12_to_24},
@@ -758,6 +926,28 @@ static EffectSettings global_settings[] = {
 
 static EffectSettings misc_settings[] = {
     {"Preset Level", PRESET_LEVEL, PRESET_POSITION, &values_0_to_99},
+};
+
+static EffectSettings gsp1101_misc_settings[] = {
+    {"Preset Level", PRESET_LEVEL, PRESET_POSITION, &values_0_to_99},
+    {"Volume Pre FX", PRESET_LEVEL, VOLUME_PRE_FX_POSITION, &values_0_to_99},
+    {"Volume Post FX", PRESET_LEVEL, VOLUME_POST_FX_POSITION, &values_0_to_99},
+    {"Loop Send", AMP_LOOP_SEND_LVL, AMP_B_POSITION, &values_0_to_99},
+    {"Loop Int Mix Left",  AMP_LOOP_INT_MIX_LEFT_LVL,  AMP_B_POSITION, &values_0_to_99},
+    {"Loop Int Mix Right", AMP_LOOP_INT_MIX_RIGHT_LVL, AMP_B_POSITION, &values_0_to_99},
+    {"Loop Ext Mix Left",  AMP_LOOP_EXT_MIX_LEFT_LVL,  AMP_B_POSITION, &values_0_to_99},
+    {"Loop Ext Mix Right", AMP_LOOP_EXT_MIX_RIGHT_LVL, AMP_B_POSITION, &values_0_to_99},
+    {"Seamless Ramp", SEAMLESS_RAMP, SEAMLESS_POSITION, &values_seamless},
+    {"Seamless Hold", SEAMLESS_HOLD, SEAMLESS_POSITION, &values_seamless},
+    {"Parallel Dry Left",  ROUTING_PARALLEL_DRY_LEFT_LVL,  ROUTING_POSITION, &values_0_to_99},
+    {"Parallel Dry Right", ROUTING_PARALLEL_DRY_RIGHT_LVL, ROUTING_POSITION, &values_0_to_99},
+};
+
+static EffectSettings gsp1101_lfo_settings[] = {
+    {"LFO1", LFO_WAVEFORM, LFO1_POSITION, &values_waveform},
+    {"LFO1", LFO_SPEED,    LFO1_POSITION, &values_lfo_speed},
+    {"LFO2", LFO_WAVEFORM, LFO2_POSITION, &values_waveform},
+    {"LFO2", LFO_SPEED,    LFO2_POSITION, &values_lfo_speed},
 };
 
 static EffectSettings pre_fx_settings[] = {
@@ -777,6 +967,15 @@ static EffectSettings wah_settings[] = {
     {"Min", WAH_MIN, WAH_POSITION_MIN_MAX, &values_0_to_99},
     {"Max", WAH_MAX, WAH_POSITION_MIN_MAX, &values_0_to_99},
     {"Level", WAH_LEVEL, WAH_POSITION, &values_db_boost},
+};
+
+static EffectSettings gsp1101_wah_settings[] = {
+    {"Level", WAH_LEVEL, WAH_POSITION, &values_db_m6_to_12},
+    {"Pedal", WAH_PEDAL_POSITION, WAH_POSITION, &values_0_to_99},
+    {"Ctl 2 Min", WAH_FCPDL1_MIN_POSITION, WAH_POSITION, &values_0_to_99},
+    {"Ctl 2 Max", WAH_FCPDL1_MAX_POSITION, WAH_POSITION, &values_0_to_99},
+    {"CC Type", WAH_CCPDL_TYPE_POSITION, WAH_POSITION, &values_0_to_1},
+    {"CC Thresh", WAH_CCPDL_THRESH_POSITION, WAH_POSITION, &values_0_to_99},
 };
 
 static EffectSettings gnx3k_whammy_settings[] = {
@@ -982,6 +1181,19 @@ static EffectSettings dist_mp_settings[] = {
     {"Sustain", DIST_MP_SUSTAIN, DIST_POSITION, &values_0_to_99},
     {"Tone", DIST_MP_TONE, DIST_POSITION, &values_0_to_99},
     {"Volume", DIST_MP_VOLUME, DIST_POSITION, &values_0_to_99},
+};
+
+static EffectSettings dist_3bandeq_settings[] = {
+    {"Low Gain",   DIST_3BANDEQ_LOW_GAIN,  DIST_POSITION, &values_eq_db},
+    {"Low Freq",   DIST_3BANDEQ_LOW_FREQ,  DIST_POSITION, &values_eq_low_freq},
+    {"Low Width",  DIST_3BANDEQ_LOW_WIDTH, DIST_POSITION, &values_eq_bandwidth},
+    {"Mid Gain",   DIST_3BANDEQ_MID_GAIN,  DIST_POSITION, &values_eq_db},
+    {"Mid Freq",   DIST_3BANDEQ_MID_FREQ,  DIST_POSITION, &values_eq_mid_freq},
+    {"Mid Width",  DIST_3BANDEQ_MID_WIDTH, DIST_POSITION, &values_eq_bandwidth},
+    {"High Gain",  DIST_3BANDEQ_HI_GAIN,   DIST_POSITION, &values_eq_db},
+    {"High Freq",  DIST_3BANDEQ_HI_FREQ,   DIST_POSITION, &values_eq_high_freq},
+    {"High Width", DIST_3BANDEQ_HI_WIDTH,  DIST_POSITION, &values_eq_bandwidth},
+    {"Level", DIST_3BANDEQ_LVL, DIST_POSITION, &values_0_to_99}, // shared with DIST_GUYOD_LVL
 };
 
 static EffectSettings rp250_amp_settings[] = {
@@ -1452,6 +1664,14 @@ static EffectSettings chorusfx_octaver_settings[] = {
     {"Dry Level", OCTAVER_DRY_LEVEL, CHORUSFX_POSITION, &values_0_to_99},
 };
 
+static EffectSettings gsp1101_chorus_misc_settings[] = {
+    {"Wet Left",  CHORUS_WET_LEFT_LVL,  CHORUSFX_POSITION, &values_0_to_99},
+    {"Wet Right", CHORUS_WET_RIGHT_LVL, CHORUSFX_POSITION, &values_0_to_99},
+    {"Pan Wet", CHORUS_PAN_WET, CHORUSFX_POSITION, &values_pan_percent,},
+    {"Pan Dry", CHORUS_PAN_DRY, CHORUSFX_POSITION, &values_pan_percent,},
+    {"Dry", CHORUS_DRY_LVL, CHORUSFX_POSITION, &values_0_to_99},
+};
+
 static EffectSettings gnx3k_delay_settings[] = {
     {"Time", GNX3K_DELAY_TIME, DELAY_POSITION, &values_delay_time_0_2000},
     {"Feedback", GNX3K_DELAY_FEEDBACK, DELAY_POSITION, &values_delay_repeats},
@@ -1459,6 +1679,12 @@ static EffectSettings gnx3k_delay_settings[] = {
     {"Atten", GNX3K_DELAY_DUCK_ATTEN, DELAY_POSITION, &values_0_to_99},
     {"Balance", GNX3K_DELAY_BALANCE, DELAY_POSITION, &values_balance},
     {"Level", DELAY_LEVEL, DELAY_POSITION, &values_0_to_99},
+};
+
+static EffectSettings gsp1101_delay_misc_settings[] = {
+    {"Wet Left", DELAY_WET_LEFT_LVL, DELAY_POSITION, &values_0_to_99},
+    {"Wet Right", DELAY_WET_RIGHT_LVL, DELAY_POSITION, &values_0_to_99},
+    {"Dry", DELAY_DRY_LVL, DELAY_POSITION, &values_0_to_99},
 };
 
 static EffectSettings gnx3k_delay_spread_settings[] = {
@@ -1527,6 +1753,15 @@ static EffectSettings rp500_delay_digital_settings[] = {
     {"Level", DELAY_LEVEL, DELAY_POSITION, &values_0_to_99},
 };
 
+static EffectSettings gsp1101_delay_digital_settings[] = {
+    {"Tap Time", DELAY_TAP_TIME_0_5000, DELAY_POSITION, &values_delay_time_0_5000},
+    {"Repeats", DELAY_REPEATS, DELAY_POSITION, &values_delay_repeats},
+    {"Duck Thresh", DELAY_DUCK_THRESH, DELAY_POSITION, &values_0_to_99},
+    {"Duck Level", DELAY_DUCK_LEVEL, DELAY_POSITION, &values_0_to_99},
+    {"Level", DELAY_LEVEL, DELAY_POSITION, &values_0_to_99},
+    {"Play/Stop", DELAY_LOOPER_RECORD, DELAY_POSITION, &values_on_off},
+};
+
 static EffectSettings rp500_delay_analog_settings[] = {
     {"Tap Time", DELAY_TAP_TIME_0_5000, DELAY_POSITION, &values_delay_time_0_5000},
     {"Repeats", DELAY_REPEATS, DELAY_POSITION, &values_delay_repeats},
@@ -1587,6 +1822,14 @@ static EffectSettings rp1000_delay_2_tap_settings[] = {
     {"Mix", DELAY_LEVEL, DELAY_POSITION, &values_0_to_99},
 };
 
+static EffectSettings gsp1101_delay_2_tap_settings[] = {
+    {"Time", DELAY_TAP_TIME_0_5000, DELAY_POSITION, &values_delay_time_0_5000},
+    {"Repeats", DELAY_REPEATS, DELAY_POSITION, &values_delay_repeats},
+    {"Ratio", DELAY_TAP_RATIO, DELAY_POSITION, &values_delay_repeats},
+    {"Mix", DELAY_LEVEL, DELAY_POSITION, &values_0_to_99},
+    {"Stereo/Mono", DELAY_STEREO_MONO, DELAY_POSITION, &values_stereo_mono},
+};
+
 static EffectSettings reverb_twin_settings[] = {
     {"Reverb", REVERB_LEVEL, REVERB_POSITION, &values_0_to_99},
 };
@@ -1597,6 +1840,12 @@ static EffectSettings gnx3k_reverb_settings[] = {
     {"Damping", REVERB_DAMPING, REVERB_POSITION, &values_0_to_99},
     {"Balance", REVERB_BALANCE, REVERB_POSITION, &values_balance},
     {"Level", REVERB_LEVEL, REVERB_POSITION, &values_0_to_99},
+};
+
+static EffectSettings gsp1101_reverb_misc_settings[] = {
+    {"Wet Left",  REVERB_WET_LEFT_LVL,  REVERB_POSITION, &values_0_to_99},
+    {"Wet Right", REVERB_WET_RIGHT_LVL, REVERB_POSITION, &values_0_to_99},
+    {"Dry", REVERB_DRY_LVL, REVERB_POSITION, &values_0_to_99},
 };
 
 static EffectSettings lfo1_settings[] = {
@@ -1646,6 +1895,12 @@ static EffectGroup wah_group[] = {
     {WAH_TYPE_CLYDE, "Clyde Wah", wah_settings, G_N_ELEMENTS(wah_settings)},
 };
 
+static EffectGroup gsp1101_wah_group[] = {
+    {WAH_TYPE_CRY, "Cry Wah", gsp1101_wah_settings, G_N_ELEMENTS(gsp1101_wah_settings)},
+    {WAH_TYPE_FULLRANGE, "Fullrange Wah", gsp1101_wah_settings, G_N_ELEMENTS(gsp1101_wah_settings)},
+    {WAH_TYPE_CLYDE, "Clyde Wah", gsp1101_wah_settings, G_N_ELEMENTS(gsp1101_wah_settings)},
+};
+
 static EffectGroup gnx3k_whammy_group[] = {
     {GNX3K_WHAM_TYPE_WHAMMY, "Whammy", gnx3k_whammy_settings, G_N_ELEMENTS(gnx3k_whammy_settings)},
     {GNX3K_WHAM_TYPE_IPS, "IPS", gnx3k_ips_settings, G_N_ELEMENTS(gnx3k_ips_settings)},
@@ -1669,6 +1924,41 @@ static EffectGroup global_group[] = {
 
 static EffectGroup misc_group[] = {
     {-1, NULL, misc_settings, G_N_ELEMENTS(misc_settings)},
+};
+
+static EffectGroup gsp1101_misc_group[] = {
+    {-1, NULL, gsp1101_misc_settings, G_N_ELEMENTS(gsp1101_misc_settings)},
+};
+
+static EffectGroup gsp1101_lfo_group[] = {
+    {-1, NULL, gsp1101_lfo_settings, G_N_ELEMENTS(gsp1101_lfo_settings)},
+};
+
+static EffectGroup amp_loop_select_send_group[] = {
+    {0, "sends post-Distortion", NULL, 0},
+    {1, "sends post-Amp", NULL, 0},
+};
+
+static EffectGroup amp_loop_select_input_group[] = {
+    {0, "returns Stereo", NULL, 0},
+    {1, "returns Left", NULL, 0},
+    {2, "returns Right", NULL, 0},
+    {3, "returns Sum", NULL, 0},
+};
+
+static EffectGroup amp_preamp_loop_intext_group[] = {
+    {0, "Internal", NULL, 0},
+    {1, "External", NULL, 0},
+};
+
+static EffectGroup series_parallel_select_group[] = {
+    {0, "Series", NULL, 0},
+    {1, "Parallel", NULL, 0},
+};
+
+static EffectGroup series_parallel_dry_kill_group[] = {
+    {0, "output Wet/Dry Mix", NULL, 0},
+    {1, "output Wet Only", NULL, 0},
 };
 
 static EffectGroup pre_fx_group[] = {
@@ -1702,6 +1992,12 @@ static EffectGroup rp500_comp_group[] = {
     {COMP_TYPE_DIGI, "Digital compressor", comp_digi_settings, G_N_ELEMENTS(comp_digi_settings)},
     {COMP_TYPE_CS, "CS compressor", comp_cs_settings, G_N_ELEMENTS(comp_cs_settings)},
     {COMP_TYPE_DYNA, "Dyna comp", comp_dyna_settings, G_N_ELEMENTS(comp_dyna_settings)},
+};
+
+static EffectGroup gsp1101_comp_group[] = {
+    {COMP_TYPE_DIGI, "Digital", comp_digi_settings, G_N_ELEMENTS(comp_digi_settings)},
+    {COMP_TYPE_CS,   "CS",      comp_cs_settings,   G_N_ELEMENTS(comp_cs_settings)},
+    {COMP_TYPE_DYNA, "Dyna",    comp_dyna_settings, G_N_ELEMENTS(comp_dyna_settings)},
 };
 
 static EffectGroup rp150_dist_group[] = {
@@ -1811,6 +2107,33 @@ static EffectGroup rp1000_dist_group[] = {
     {DIST_TYPE_CLASSIC_FUZZ, "Classic Fuzz", dist_classic_fuzz_settings, G_N_ELEMENTS(dist_classic_fuzz_settings)},
     {DIST_TYPE_FUZZY, "Fuzzy", dist_fuzzy_settings, G_N_ELEMENTS(dist_fuzzy_settings)},
     {DIST_TYPE_MP, "Big Pi", dist_mp_settings, G_N_ELEMENTS(dist_mp_settings)},
+};
+
+static EffectGroup gsp1101_dist_group[] = {
+    {DIST_TYPE_SCREAMER,     "Screamer",      dist_screamer_settings, G_N_ELEMENTS(dist_screamer_settings)},
+    {DIST_TYPE_808,          "808",           dist_808_settings, G_N_ELEMENTS(dist_808_settings)},
+    {DIST_TYPE_TS_MOD,       "TS Mod",        dist_ts_mod_settings, G_N_ELEMENTS(dist_ts_mod_settings)},
+    {DIST_TYPE_SD_ODRV,      "SD Overdrive",  dist_sd_odrv_settings, G_N_ELEMENTS(dist_sd_odrv_settings)},
+    {DIST_TYPE_OD_ODRV,      "OD Overdrive",  dist_od_odrv_settings, G_N_ELEMENTS(dist_od_odrv_settings)},
+    {DIST_TYPE_SPARKDRIVE,   "Sparkdrive",    dist_sparkdrive_settings, G_N_ELEMENTS(dist_sparkdrive_settings)},
+    {DIST_TYPE_GUYOD,        "Guy Overdrive", dist_guyod_settings, G_N_ELEMENTS(dist_guyod_settings)},
+    {DIST_TYPE_DOD250,       "DOD250",        dist_dod250_settings, G_N_ELEMENTS(dist_dod250_settings)},
+    {DIST_TYPE_REDLINE,      "Redline",       dist_redline_settings, G_N_ELEMENTS(dist_redline_settings)},
+    {DIST_TYPE_AMPDRIVR,     "Amp Driver",    dist_ampdrivr_settings, G_N_ELEMENTS(dist_ampdrivr_settings)},
+    {DIST_TYPE_OC_DRIVE,     "OC Drive",      dist_oc_drive_settings, G_N_ELEMENTS(dist_oc_drive_settings)},
+    {DIST_TYPE_RODENT,       "Rodent",        dist_rodent_settings, G_N_ELEMENTS(dist_rodent_settings)},
+    {DIST_TYPE_MX,           "MX Dist",       dist_mx_settings, G_N_ELEMENTS(dist_mx_settings)},
+    {DIST_TYPE_DS,           "DS Dist",       dist_ds_settings, G_N_ELEMENTS(dist_ds_settings)},
+    {DIST_TYPE_GRUNGE,       "Grunge",        dist_grunge_settings, G_N_ELEMENTS(dist_grunge_settings)},
+    {DIST_TYPE_ZONE,         "Zone",          dist_zone_settings, G_N_ELEMENTS(dist_zone_settings)},
+    {DIST_TYPE_DEATH,        "Death",         dist_death_settings, G_N_ELEMENTS(dist_death_settings)},
+    {DIST_TYPE_GONK,         "Gonk",          dist_gonk_settings, G_N_ELEMENTS(dist_gonk_settings)},
+    {DIST_TYPE_8TAVIA,       "8tavia",        dist_8tavia_settings, G_N_ELEMENTS(dist_8tavia_settings)},
+    {DIST_TYPE_FUZZLATOR,    "Fuzzlator",     dist_fuzzlator_settings, G_N_ELEMENTS(dist_fuzzlator_settings)},
+    {DIST_TYPE_CLASSIC_FUZZ, "Classic Fuzz",  dist_classic_fuzz_settings, G_N_ELEMENTS(dist_classic_fuzz_settings)},
+    {DIST_TYPE_FUZZY,        "Fuzzy",         dist_fuzzy_settings, G_N_ELEMENTS(dist_fuzzy_settings)},
+    {DIST_TYPE_MP,           "Big Pi",        dist_mp_settings, G_N_ELEMENTS(dist_mp_settings)},
+    {DIST_TYPE_3BANDEQ,      "3 Band EQ",     dist_3bandeq_settings, G_N_ELEMENTS(dist_3bandeq_settings)},
 };
 
 static EffectGroup gnx4_dist_group[] = {
@@ -2085,6 +2408,10 @@ static EffectGroup rp1000_chorusfx_group[] = {
     {CHORUS_TYPE_OCTAVER, "Octaver", chorusfx_octaver_settings, G_N_ELEMENTS(chorusfx_octaver_settings)},
 };
 
+static EffectGroup gsp1101_chorus_misc_group[] = {
+    {-1, NULL, gsp1101_chorus_misc_settings, G_N_ELEMENTS(gsp1101_chorus_misc_settings)},
+};
+
 static EffectGroup gnx3k_delay_group[] = {
     {DELAY_GNX3K_TYPE_MONO, "Mono", gnx3k_delay_settings, G_N_ELEMENTS(gnx3k_delay_settings)},
     {DELAY_GNX3K_TYPE_PINGPONG, "Ping-Pong", gnx3k_delay_settings, G_N_ELEMENTS(gnx3k_delay_settings)},
@@ -2135,6 +2462,21 @@ static EffectGroup rp1000_delay_group[] = {
     {DELAY_RP1000_TYPE_2_TAP, "2-tap", rp1000_delay_2_tap_settings, G_N_ELEMENTS(rp1000_delay_2_tap_settings)},
 };
 
+static EffectGroup gsp1101_delay_group[] = {
+    {DELAY_RP500_TYPE_ANALOG,    "Analog",     rp500_delay_analog_settings, G_N_ELEMENTS(rp500_delay_analog_settings)},
+    {DELAY_RP500_TYPE_DM,        "DM",         rp500_delay_dm_settings, G_N_ELEMENTS(rp500_delay_dm_settings)},
+    {DELAY_RP500_TYPE_DIGITAL,   "Digital",    gsp1101_delay_digital_settings, G_N_ELEMENTS(gsp1101_delay_digital_settings)},
+    {DELAY_RP500_TYPE_MODULATED, "Modulation", rp500_delay_modulated_settings, G_N_ELEMENTS(rp500_delay_modulated_settings)},
+    {DELAY_RP500_TYPE_PONG,      "Ping Pong",  rp500_delay_pong_settings, G_N_ELEMENTS(rp500_delay_pong_settings)},
+    {DELAY_RP500_TYPE_TAPE,      "Tape",       rp500_delay_tape_settings, G_N_ELEMENTS(rp500_delay_tape_settings)},
+    {DELAY_RP500_TYPE_ECHOPLEX,  "Echo Plex",  rp500_delay_echoplex_settings, G_N_ELEMENTS(rp500_delay_echoplex_settings)},
+    {DELAY_RP1000_TYPE_2_TAP,    "2-tap",      gsp1101_delay_2_tap_settings, G_N_ELEMENTS(gsp1101_delay_2_tap_settings)},
+};
+
+static EffectGroup gsp1101_delay_misc_group[] = {
+    {-1, NULL, gsp1101_delay_misc_settings, G_N_ELEMENTS(gsp1101_delay_misc_settings)},
+};
+
 static EffectGroup gnx3k_reverb_group[] = {
     {GNX3K_REVERB_TYPE_STUDIO, "Studio", gnx3k_reverb_settings, G_N_ELEMENTS(gnx3k_reverb_settings)},
     {GNX3K_REVERB_TYPE_ROOM, "Room", gnx3k_reverb_settings, G_N_ELEMENTS(gnx3k_reverb_settings)},
@@ -2155,6 +2497,10 @@ static EffectGroup reverb_group[] = {
     {REVERB_TYPE_LEX_ROOM, "Lexicon room", reverb_lex_settings, G_N_ELEMENTS(reverb_lex_settings)},
     {REVERB_TYPE_LEX_HALL, "Lexicon hall", reverb_lex_settings, G_N_ELEMENTS(reverb_lex_settings)},
     {REVERB_TYPE_EMT240_PLATE, "EMT240 Plate", reverb_lex_settings, G_N_ELEMENTS(reverb_lex_settings)},
+};
+
+static EffectGroup gsp1101_reverb_misc_group[] = {
+    {-1, NULL, gsp1101_reverb_misc_settings, G_N_ELEMENTS(gsp1101_reverb_misc_settings)},
 };
 
 static EffectGroup rp150_amp_group[] = {
@@ -2676,6 +3022,47 @@ static EffectGroup gnx3k_amp_cab_group[] = {
     {GNX_AMP_CAB_SVT_BASS8_10, "SVT Bass 8x10", NULL, -1},
 };
 
+static EffectGroup gsp1101_amp_cab_group[] = {
+    {AMP_CAB_DIRECT,         "Direct",                NULL, -1},
+    {AMP_CAB_CHAMP,          "Champ",                 NULL, -1},
+    {AMP_CAB_DELUXE,         "Deluxe",                NULL, -1},
+    {AMP_CAB_DELUXE_REVERB,  "Deluxe Reverb 1x12",    NULL, -1},
+    {AMP_CAB_BRITISH1_12,    "British 1x12",          NULL, -1},
+    {AMP_CAB_GA1_12,         "GA 1x12",               NULL, -1},
+    {AMP_CAB_BLONDE2_12,     "Blonde 2x12",           NULL, -1},
+    {AMP_CAB_TWIN,           "Twin 2x12",             NULL, -1},
+    {AMP_CAB_BRITISH2_12,    "British 2x12",          NULL, -1},
+    {AMP_CAB_JAZZ2_12,       "Jazz 2x12",             NULL, -1},
+    {AMP_CAB_JBL_215,        "JBL/Lansing Enclosure", NULL, -1},
+    {AMP_CAB_BASSMAN,        "Bassman 4x10",          NULL, -1},
+    {AMP_CAB_BRITISH4_12,    "British 4x12",          NULL, -1},
+    {AMP_CAB_BRITISH_GREEN,  "Greenback 4x12",        NULL, -1},
+    {AMP_CAB_FANE4_12,       "Fane 4x12",             NULL, -1},
+    {AMP_CAB_BOUTIQUE4_12,   "Boutique 4x12",         NULL, -1},
+    {AMP_CAB_VINTAGE,        "Vintage 4x12",          NULL, -1},
+    {AMP_CAB_RECTO4_12,      "Recto 4x12",            NULL, -1},
+    {AMP_CAB_DIGI_SOLO,      "DigiTech Solo 4x12",    NULL, -1},
+    {AMP_CAB_DIGI_BRIGHT,    "DigiTech Bright 2x12",  NULL, -1},
+    {AMP_CAB_DIGI_METAL,     "DigiTech Metal 4x12",   NULL, -1},
+    {AMP_CAB_DIGI_ROCK,      "DigiTech Rock 4x12",    NULL, -1},
+    {AMP_CAB_DIGI_ALT,       "DigiTech Alt 4x12",     NULL, -1},
+    {AMP_CAB_DIGI_VNTG,      "DigiTech Vintage 4x12", NULL, -1},
+    {AMP_CAB_DIGI_CHUNK,     "DigiTech Chunk 4x12",   NULL, -1},
+    {AMP_CAB_DIGI_SPANK2_12, "DigiTech Spank 2x12",   NULL, -1},
+    {AMP_CAB_DIGI_SPKR_COMP, "DigiTech Spkr Comp",    NULL, -1},
+
+    {GSP1101_AMP_CAB_USER1, "User Cab 1", NULL, -1},
+    {GSP1101_AMP_CAB_USER2, "User Cab 2", NULL, -1},
+    {GSP1101_AMP_CAB_USER3, "User Cab 3", NULL, -1},
+    {GSP1101_AMP_CAB_USER4, "User Cab 4", NULL, -1},
+    {GSP1101_AMP_CAB_USER5, "User Cab 5", NULL, -1},
+    {GSP1101_AMP_CAB_USER6, "User Cab 6", NULL, -1},
+    {GSP1101_AMP_CAB_USER7, "User Cab 7", NULL, -1},
+    {GSP1101_AMP_CAB_USER8, "User Cab 8", NULL, -1},
+    {GSP1101_AMP_CAB_USER9, "User Cab 9", NULL, -1},
+    {GSP1101_AMP_CAB_USER10, "User Cab 10", NULL, -1},
+};
+
 static EffectGroup gnx3k_ch1_cab_tuning_group[] = {
     {-1, NULL, gnx3k_ch1_cab_tuning_settings, G_N_ELEMENTS(gnx3k_ch1_cab_tuning_settings)},
 };
@@ -2780,6 +3167,32 @@ static EffectGroup pre_post_group[] = {
     {CHORUSFX_POST, "Post Amp", NULL, -1},
 };
 
+static EffectGroup gsp1101_pre_post_group[] = {
+    {0, "Pre Amp",  NULL, -1},
+    {1, "Post Amp", NULL, -1},
+};
+
+static EffectGroup link_controller_group[] = {
+    {LINK_CONTROLLER_NONE, "None", NULL, -1},
+    {LINK_CONTROLLER_1,    "Controller 1 to", NULL, -1},
+    {LINK_CONTROLLER_2,    "Controller 2 to", NULL, -1},
+    {LINK_CONTROLLER_3,    "Controller 3 to", NULL, -1},
+    {LINK_CONTROLLER_4,    "Controller 4 to", NULL, -1},
+    {LINK_CONTROLLER_5,    "Controller 5 to", NULL, -1},
+    {LINK_CONTROLLER_6,    "Controller 6 to", NULL, -1},
+    {LINK_CONTROLLER_7,    "Controller 7 to", NULL, -1},
+    {LINK_CONTROLLER_8,    "Controller 8 to", NULL, -1},
+    {LINK_CONTROLLER_9,    "Controller 9 to", NULL, -1},
+    {LINK_CONTROLLER_10,   "Controller 10 to", NULL, -1},
+    {LINK_CONTROLLER_11,   "Controller 11 to", NULL, -1},
+    {LINK_CONTROLLER_12,   "Controller 12 to", NULL, -1},
+    {LINK_CONTROLLER_13,   "Controller 13 to", NULL, -1},
+    {LINK_CONTROLLER_14,   "Controller 14 to", NULL, -1},
+    {LINK_CONTROLLER_15,   "Controller 15 to", NULL, -1},
+    {LINK_CONTROLLER_16,   "Controller 16 to", NULL, -1},
+    {LINK_CONTROLLER_LFO1, "LFO1 to", NULL, -1},
+    {LINK_CONTROLLER_LFO2, "LFO2 to", NULL, -1},
+};
 static EffectGroup delay_mult_group[] = {
     {DELAY_3_QUARTR, "3 Quarter", NULL, -1},
     {DELAY_EIGHT, "Eighth", NULL, -1},
@@ -2788,12 +3201,30 @@ static EffectGroup delay_mult_group[] = {
     {DELAY_HALF, "Half", NULL, -1},
 };
 
+static EffectGroup delay_division_group[] = {
+    {DELAY_DIVISION_SIXTEENTH,       "Sixteenth",   NULL, -1},
+    {DELAY_DIVISION_EIGHTH_TRIPLET,  "3 Eighth",    NULL, -1},
+    {DELAY_DIVISION_EIGHTH,          "Eighth",      NULL, -1},
+    {DELAY_DIVISION_QUARTER_TRIPLET, "3 Quarter",   NULL, -1},
+    {DELAY_DIVISION_DOTTED_EIGHTH,   "Dot Eighth",  NULL, -1},
+    {DELAY_DIVISION_QUARTER,         "Quarter",     NULL, -1},
+    {DELAY_DIVISION_HALF_TRIPLET,    "3 Half",      NULL, -1},
+    {DELAY_DIVISION_DOTTED_QUARTER,  "Dot Quarter", NULL, -1},
+    {DELAY_DIVISION_HALF,            "Half",        NULL, -1},
+    {DELAY_DIVISION_WHOLE,           "Whole",       NULL, -1},
+};
+
 static Effect gnx3k_wah_effect[] = {
     {NULL, WAH_ON_OFF, WAH_TYPE, WAH_POSITION, gnx3k_wah_group, G_N_ELEMENTS(gnx3k_wah_group)},
 };
 
 static Effect wah_effect[] = {
     {NULL, WAH_ON_OFF, WAH_TYPE, WAH_POSITION, wah_group, G_N_ELEMENTS(wah_group)},
+};
+
+static Effect gsp1101_wah_effect[] = {
+    {"Enable Wah", WAH_ON_OFF, WAH_TYPE, WAH_POSITION, NULL, -1},
+    {"Type", -1, WAH_TYPE, WAH_POSITION, gsp1101_wah_group, G_N_ELEMENTS(gsp1101_wah_group)},
 };
 
 static Effect expression_pedal_assign_effect[] = {
@@ -2824,6 +3255,12 @@ static Effect rp500_comp_effect[] = {
     {NULL, COMP_ON_OFF, COMP_TYPE, COMP_POSITION, rp500_comp_group, G_N_ELEMENTS(rp500_comp_group)},
 };
 
+static Effect gsp1101_comp_effect[] = {
+    {"Enable Compressor", COMP_ON_OFF, -1, COMP_POSITION, NULL, -1},
+    {"Compressor Type", -1, COMP_TYPE, COMP_POSITION, gsp1101_comp_group, G_N_ELEMENTS(gsp1101_comp_group)},
+    {"Position", -1, GSP1101_COMP_POSITION, COMP_POSITION, gsp1101_pre_post_group, G_N_ELEMENTS(gsp1101_pre_post_group)},
+};
+
 static Effect rp150_dist_effect[] = {
     {NULL, DIST_ON_OFF, DIST_TYPE, DIST_POSITION, rp150_dist_group, G_N_ELEMENTS(rp150_dist_group)},
 };
@@ -2848,6 +3285,11 @@ static Effect rp1000_dist_effect[] = {
     {NULL, DIST_ON_OFF, DIST_TYPE, DIST_POSITION, rp1000_dist_group, G_N_ELEMENTS(rp1000_dist_group)},
 };
 
+static Effect gsp1101_dist_effect[] = {
+    {"Enable Distortion", DIST_ON_OFF, -1, DIST_POSITION, NULL, -1},
+    {"Distortion Type", -1, DIST_TYPE, DIST_POSITION, gsp1101_dist_group, G_N_ELEMENTS(gsp1101_dist_group)},
+};
+
 static Effect gnx4_dist_effect[] = {
     {NULL, DIST_ON_OFF, DIST_TYPE, DIST_POSITION, gnx4_dist_group, G_N_ELEMENTS(gnx4_dist_group)},
 };
@@ -2858,6 +3300,11 @@ static Effect gnx3k_dist_effect[] = {
 
 static Effect gnx3k_noisegate_effect[] = {
     {NULL, NOISEGATE_ON_OFF, NOISEGATE_TYPE, NOISEGATE_POSITION, gnx3k_noisegate_group, G_N_ELEMENTS(gnx3k_noisegate_group)},
+};
+
+static Effect gsp1101_noisegate_effect[] = {
+    {"Enable Gate", NOISEGATE_ON_OFF, -1, DIST_POSITION, NULL, -1},
+    {"Gate Type", -1, NOISEGATE_TYPE, NOISEGATE_POSITION, noisegate_group, G_N_ELEMENTS(noisegate_group)},
 };
 
 static Effect noisegate_effect[] = {
@@ -2906,6 +3353,13 @@ static Effect rp1000_chorusfx_effect[] = {
     {"Position",-1, CHORUSFX_PRE_POST,CHORUSFX_POSITION, pre_post_group,G_N_ELEMENTS(pre_post_group)},
 };
 
+static Effect gsp1101_chorusfx_effect[] = {
+    {"Enable FX", CHORUSFX_ON_OFF, -1, CHORUSFX_POSITION, NULL, -1},
+    {"FX Type", -1, CHORUSFX_TYPE, CHORUSFX_POSITION, rp1000_chorusfx_group, G_N_ELEMENTS(rp1000_chorusfx_group)},
+    {"Position",-1, CHORUSFX_PRE_POST, CHORUSFX_POSITION, pre_post_group,G_N_ELEMENTS(pre_post_group)},
+    {NULL, -1, -1, -1, gsp1101_chorus_misc_group, G_N_ELEMENTS(gsp1101_chorus_misc_group)},
+};
+
 static Effect gnx3k_delay_effect[] = {
     {NULL, DELAY_ON_OFF, DELAY_TYPE, DELAY_POSITION, gnx3k_delay_group, G_N_ELEMENTS(gnx3k_delay_group)},
 };
@@ -2933,6 +3387,16 @@ static Effect gnx3k_reverb_effect[] = {
 
 static Effect reverb_effect[] = {
     {NULL, REVERB_ON_OFF, REVERB_TYPE, REVERB_POSITION, reverb_group, G_N_ELEMENTS(reverb_group)},
+};
+
+static Effect gsp1101_reverb_delay_effect[] = {
+    {"Enable Reverb", REVERB_ON_OFF, -1, REVERB_POSITION, NULL, -1},
+    {"Reverb Type", -1, REVERB_TYPE, REVERB_POSITION, reverb_group, G_N_ELEMENTS(reverb_group)},
+    {NULL, -1, -1, -1, gsp1101_reverb_misc_group, G_N_ELEMENTS(gsp1101_reverb_misc_group)},
+    {"Enable Delay", DELAY_ON_OFF, -1, DELAY_POSITION, NULL, -1},
+    {"Delay Type", -1, DELAY_TYPE, DELAY_POSITION, gsp1101_delay_group, G_N_ELEMENTS(gsp1101_delay_group)},
+    {"Division", -1, DELAY_TEMPO_DIVISION , DELAY_POSITION, delay_division_group, G_N_ELEMENTS(delay_division_group)},
+    {NULL, -1, -1, -1, gsp1101_delay_misc_group, G_N_ELEMENTS(gsp1101_delay_misc_group)},
 };
 
 static Effect rp150_amp_effect[] = {
@@ -2983,6 +3447,14 @@ static Effect rp1000_amp_effect[] = {
     {NULL, -1, AMP_CAB_TYPE, AMP_CAB_POSITION, rp1000_amp_cab_group, G_N_ELEMENTS(rp1000_amp_cab_group)},
 };
 
+static Effect gsp1101_amp_effect[] = {
+    {"Enable Amp", AMP_ON_OFF, -1, AMP_A_POSITION, NULL, -1},
+    {"LPF to XLR", AMP_LPF_TO_XLR, -1, AMP_A_POSITION, NULL, -1},
+    {"Preamp Loop", -1, AMP_PREAMP_LOOP_EXT, AMP_B_POSITION, amp_preamp_loop_intext_group, G_N_ELEMENTS(amp_preamp_loop_intext_group)},
+    {"Amp Model", -1, AMP_TYPE, AMP_A_POSITION, rp1000_amp_group, G_N_ELEMENTS(rp1000_amp_group)},
+    {"Cab Model", -1, AMP_CAB_TYPE, AMP_CAB_POSITION, gsp1101_amp_cab_group, G_N_ELEMENTS(gsp1101_amp_cab_group)},
+};
+
 static Effect gnx3k_channel_1_effect[] = {
     {"EQ Enable", AMP_EQ_ON_OFF, AMP_TYPE, AMP_A_POSITION, gnx3k_amp_group, G_N_ELEMENTS(gnx3k_amp_group)},
     {NULL, -1, AMP_CAB_TYPE, AMP_CAB_POSITION, gnx3k_amp_cab_group, G_N_ELEMENTS(gnx3k_amp_cab_group)},
@@ -3027,6 +3499,49 @@ static Effect pickup_misc_effect[] = {
 static Effect pickup_effect[] = {
     {NULL, PICKUP_ON_OFF, PICKUP_TYPE, PICKUP_POSITION, pickup_group, G_N_ELEMENTS(pickup_group)},
 };
+
+static Effect gsp1101_misc_effect[] = {
+    {"Loop", -1, AMP_LOOP_SELECT_SEND, AMP_B_POSITION, amp_loop_select_send_group, G_N_ELEMENTS(amp_loop_select_send_group)},
+    {"Loop", -1, AMP_LOOP_INPUT_SELECT, AMP_B_POSITION, amp_loop_select_input_group, G_N_ELEMENTS(amp_loop_select_input_group)},
+    {"Dry/Wet", -1, ROUTING_POST_DEFEAT_DRY_ON_OFF, ROUTING_POSITION, series_parallel_dry_kill_group, G_N_ELEMENTS(series_parallel_dry_kill_group)},
+    {"Routing", -1, ROUTING_SERIES_PARALLEL_CFG, ROUTING_POSITION, series_parallel_select_group, G_N_ELEMENTS(series_parallel_select_group)},
+    {NULL, -1, -1, -1, gsp1101_misc_group, G_N_ELEMENTS(gsp1101_misc_group)},
+};
+
+static Effect gsp1101_link_effect[] = {
+    {"Link 1", -1, LINK_CONTROLLER, LINK_POSITION_1, link_controller_group, G_N_ELEMENTS(link_controller_group)},
+    {NULL,     -1, LINK_TO, LINK_POSITION_1, expression_pedal_assign_group, G_N_ELEMENTS(expression_pedal_assign_group)},
+    {"Link 2", -1, LINK_CONTROLLER, LINK_POSITION_2, link_controller_group, G_N_ELEMENTS(link_controller_group)},
+    {NULL,     -1, LINK_TO, LINK_POSITION_2, expression_pedal_assign_group, G_N_ELEMENTS(expression_pedal_assign_group)},
+    {"Link 3", -1, LINK_CONTROLLER, LINK_POSITION_3, link_controller_group, G_N_ELEMENTS(link_controller_group)},
+    {NULL,     -1, LINK_TO, LINK_POSITION_3, expression_pedal_assign_group, G_N_ELEMENTS(expression_pedal_assign_group)},
+    {"Link 4", -1, LINK_CONTROLLER, LINK_POSITION_4, link_controller_group, G_N_ELEMENTS(link_controller_group)},
+    {NULL,     -1, LINK_TO, LINK_POSITION_4, expression_pedal_assign_group, G_N_ELEMENTS(expression_pedal_assign_group)},
+    {"Link 5", -1, LINK_CONTROLLER, LINK_POSITION_5, link_controller_group, G_N_ELEMENTS(link_controller_group)},
+    {NULL,     -1, LINK_TO, LINK_POSITION_5, expression_pedal_assign_group, G_N_ELEMENTS(expression_pedal_assign_group)},
+    {"Link 6", -1, LINK_CONTROLLER, LINK_POSITION_6, link_controller_group, G_N_ELEMENTS(link_controller_group)},
+    {NULL,     -1, LINK_TO, LINK_POSITION_6, expression_pedal_assign_group, G_N_ELEMENTS(expression_pedal_assign_group)},
+    {"Link 7", -1, LINK_CONTROLLER, LINK_POSITION_7, link_controller_group, G_N_ELEMENTS(link_controller_group)},
+    {NULL,     -1, LINK_TO, LINK_POSITION_7, expression_pedal_assign_group, G_N_ELEMENTS(expression_pedal_assign_group)},
+    {"Link 8", -1, LINK_CONTROLLER, LINK_POSITION_8, link_controller_group, G_N_ELEMENTS(link_controller_group)},
+    {NULL,     -1, LINK_TO, LINK_POSITION_8, expression_pedal_assign_group, G_N_ELEMENTS(expression_pedal_assign_group)},
+
+    {NULL, -1, -1, -1, gsp1101_lfo_group, G_N_ELEMENTS(gsp1101_lfo_group)},
+};
+
+#if 0
+    /* I don't see the usefulness of this, but someone might want it? */
+static Effect gsp1101_fsw_cc_effect[] = {
+    {"FSw6 Cc", GSP1101_CONFIG1_REG, -1, FOOTSWITCH_6_CC_ON_OFF_POSITION, NULL, -1},
+    {"FSw7 Cc", GSP1101_CONFIG1_REG, -1, FOOTSWITCH_7_CC_ON_OFF_POSITION, NULL, -1},
+    {"FSw8 Cc", GSP1101_CONFIG1_REG, -1, FOOTSWITCH_8_CC_ON_OFF_POSITION, NULL, -1},
+    {"FSw9 Cc", GSP1101_CONFIG1_REG, -1, FOOTSWITCH_9_CC_ON_OFF_POSITION, NULL, -1},
+    {"FSw10 Cc", GSP1101_CONFIG1_REG, -1, FOOTSWITCH_10_CC_ON_OFF_POSITION, NULL, -1},
+    {"Ext Left Cc On Off", GSP1101_CONFIG1_REG, -1, EXT_LEFT_CC_ON_OFF_POSITION, NULL, -1},
+    {"Ext Mid Cc On Off", GSP1101_CONFIG1_REG, -1, EXT_MID_CC_ON_OFF_POSITION, NULL, -1},
+    {"Ext Right Cc On Off", GSP1101_CONFIG1_REG, -1, EXT_RIGHT_CC_ON_OFF_POSITION, NULL, -1},
+};
+#endif
 
 static Effect gnx3k_amp_channel_effect[] = {
     {NULL, -1, -1, -1, gnx3k_amp_channel_group, G_N_ELEMENTS(gnx3k_amp_channel_group)},
@@ -3148,6 +3663,23 @@ static EffectList rp1000_effects[] = {
     {"Expression Pedal", expression_pedal_assign_effect, G_N_ELEMENTS(expression_pedal_assign_effect)},
 };
 
+static EffectList gsp1101_effects[] = {
+    {"Wah",          gsp1101_wah_effect, G_N_ELEMENTS(gsp1101_wah_effect)},
+    {"Preamp/Cab",   gsp1101_amp_effect, G_N_ELEMENTS(gsp1101_amp_effect)},
+    {"Equalizer",    rp500_eq_effect, G_N_ELEMENTS(rp500_eq_effect)},
+    {"Compressor",   gsp1101_comp_effect, G_N_ELEMENTS(gsp1101_comp_effect)},
+    {"Distortion",   gsp1101_dist_effect, G_N_ELEMENTS(gsp1101_dist_effect)},
+    {"Noisegate",    gsp1101_noisegate_effect, G_N_ELEMENTS(gsp1101_noisegate_effect)},
+    {"Chorus/FX",    gsp1101_chorusfx_effect, G_N_ELEMENTS(gsp1101_chorusfx_effect)},
+    {"Reverb/Delay", gsp1101_reverb_delay_effect, G_N_ELEMENTS(gsp1101_reverb_delay_effect)},
+    {"Links",        gsp1101_link_effect, G_N_ELEMENTS(gsp1101_link_effect)},
+    {"Misc",         gsp1101_misc_effect, G_N_ELEMENTS(gsp1101_misc_effect)},
+#if 0
+    /* I don't see the usefulness of this, but someone might want it? */
+    {"Footswitch/CC config", gsp1101_fsw_cc_effect, G_N_ELEMENTS(gsp1101_fsw_cc_effect)},
+#endif
+};
+
 static EffectList gnx4_effects[] = {
     {"Pickup", pickup_effect, G_N_ELEMENTS(pickup_effect)},
     {"Wah", gnx3k_wah_effect, G_N_ELEMENTS(gnx3k_wah_effect)},
@@ -3182,6 +3714,11 @@ static EffectList gnx3000_genetx[] = {
 static Banks rp_banks[] = {
     {"User Presets", PRESETS_USER},
     {"System Presets", PRESETS_SYSTEM},
+};
+
+static Banks gsp1101_banks[] = {
+    {"User Presets", PRESETS_USER},
+    {"Factory Presets", PRESETS_SYSTEM},
 };
 
 static Banks gnx4_banks[] = {
@@ -3222,6 +3759,10 @@ static EffectPage rp500_pages[] = {
 
 static EffectPage rp1000_pages[] = {
     {"Effects", rp1000_effects, G_N_ELEMENTS(rp1000_effects), 2},
+};
+
+static EffectPage gsp1101_pages[] = {
+    {"Effects", gsp1101_effects, G_N_ELEMENTS(gsp1101_effects), 2},
 };
 
 static EffectPage gnx4_pages[] = {
@@ -3323,6 +3864,16 @@ static Device gnx3000 = {
     .n_banks = G_N_ELEMENTS(gnx3k_banks),
 };
 
+static Device gsp1101 = {
+    .name = "DigiTech GSP1101 C63",
+    .family_id = GSP1101_FAMILY,
+    .product_id = GSP1101_PRODUCT,
+    .pages = gsp1101_pages,
+    .n_pages = G_N_ELEMENTS(gsp1101_pages),
+    .banks = gsp1101_banks,
+    .n_banks = G_N_ELEMENTS(gsp1101_banks),
+};
+
 Device* supported_devices[] = {
     &rp150,
     &rp155,
@@ -3333,6 +3884,7 @@ Device* supported_devices[] = {
     &rp1000,
     &gnx4,
     &gnx3000,
+    &gsp1101,
 };
 
 int n_supported_devices = G_N_ELEMENTS(supported_devices);
@@ -3360,6 +3912,7 @@ static Modifier modifiers[] = {
     {"Compressor Attack", COMP_ATTACK, COMP_POSITION, &values_0_to_99},
     {"Compressor Sensitivity", COMP_SENSITIVITY, COMP_POSITION, &values_0_to_99},
     {"Compressor Output", COMP_OUTPUT, COMP_POSITION, &values_0_to_99},
+    {"Compressor Pre/Post", GSP1101_COMP_POSITION, COMP_POSITION, &values_on_off},
 
     {"Dist Enable", DIST_ON_OFF, DIST_POSITION, &values_on_off},
     {"Dist Drive", DIST_SCREAMER_DRIVE, DIST_POSITION, &values_0_to_99},
@@ -3436,9 +3989,22 @@ static Modifier modifiers[] = {
     {"Dist Tone", DIST_MP_TONE, DIST_POSITION, &values_0_to_99},
     {"Dist Volume", DIST_MP_VOLUME, DIST_POSITION, &values_0_to_99},
 
+    // TODO: verify
+    {"Dist Low Gain",   DIST_3BANDEQ_LOW_GAIN,  DIST_POSITION, &values_eq_db},
+    {"Dist Low Freq",   DIST_3BANDEQ_LOW_FREQ,  DIST_POSITION, &values_eq_low_freq},
+    {"Dist Low Width",  DIST_3BANDEQ_LOW_WIDTH, DIST_POSITION, &values_eq_bandwidth},
+    {"Dist Mid Gain",   DIST_3BANDEQ_MID_GAIN,  DIST_POSITION, &values_eq_db},
+    {"Dist Mid Freq",   DIST_3BANDEQ_MID_FREQ,  DIST_POSITION, &values_eq_mid_freq},
+    {"Dist Mid Width",  DIST_3BANDEQ_MID_WIDTH, DIST_POSITION, &values_eq_bandwidth},
+    {"Dist High Gain",  DIST_3BANDEQ_HI_GAIN,   DIST_POSITION, &values_eq_db},
+    {"Dist High Freq",  DIST_3BANDEQ_HI_FREQ,   DIST_POSITION, &values_eq_high_freq},
+    {"Dist High Width", DIST_3BANDEQ_HI_WIDTH,  DIST_POSITION, &values_eq_bandwidth},
+    {"Dist Level", DIST_3BANDEQ_LVL, DIST_POSITION, &values_0_to_99}, // shared with DIST_GUYOD_LVL
+
     {"Amp Enable", AMP_ON_OFF, AMP_A_POSITION, &values_on_off},
     {"Amp Gain", AMP_GAIN, AMP_A_POSITION, &values_0_to_99},
     {"Amp Level", AMP_LEVEL, AMP_A_POSITION, &values_0_to_99},
+    {"Amp LPF to XLR", AMP_LPF_TO_XLR, AMP_A_POSITION, &values_on_off},
 
     {"Bass", AMP_BASS, AMP_A_POSITION, &values_1_to_10_step_0p1},
     {"Mid", AMP_MID, AMP_A_POSITION, &values_1_to_10_step_0p1},
@@ -3447,6 +4013,14 @@ static Modifier modifiers[] = {
     {"Amp B Enable", AMP_ON_OFF, AMP_B_POSITION, &values_on_off},
     {"Amp B Gain", AMP_GAIN, AMP_B_POSITION, &values_0_to_99},
     {"Amp B Level", AMP_LEVEL, AMP_B_POSITION, &values_0_to_99},
+    {"Preamp Loop", AMP_PREAMP_LOOP_EXT, AMP_B_POSITION, &values_amp_preamp_loop_select},
+    {"Loop Sends", AMP_LOOP_SELECT_SEND, AMP_B_POSITION, &values_amp_loop_select_send},
+    {"Loop Returns", AMP_LOOP_INPUT_SELECT, AMP_B_POSITION, &values_amp_loop_input_select},
+    {"Loop Int Mix Left Level",  AMP_LOOP_INT_MIX_LEFT_LVL, AMP_B_POSITION, &values_0_to_99},
+    {"Loop Int Mix Right Level", AMP_LOOP_INT_MIX_RIGHT_LVL, AMP_B_POSITION, &values_0_to_99},
+    {"Loop Ext Mix Left Level",  AMP_LOOP_EXT_MIX_LEFT_LVL, AMP_B_POSITION, &values_0_to_99},
+    {"Loop Ext Mix Right Level", AMP_LOOP_EXT_MIX_RIGHT_LVL, AMP_B_POSITION, &values_0_to_99},
+    {"Loop Send Level", AMP_LOOP_SEND_LVL, AMP_B_POSITION, &values_0_to_99},
 
     {"EQ Enable", EQ_ENABLE, EQ_A_POSITION, &values_on_off},
     {"EQ Bass", EQ_BASS, EQ_A_POSITION, &values_eq_db},
@@ -3457,6 +4031,10 @@ static Modifier modifiers[] = {
     {"Low Freq", EQ_LOW_FREQ, EQ_A_POSITION, &values_eq_low_freq},
     {"Mid Freq", EQ_MID_FREQ_RP500, EQ_A_POSITION, &values_eq_mid_freq},
     {"High Freq", EQ_HIGH_FREQ, EQ_A_POSITION, &values_eq_high_freq},
+
+    {"Low Bandwidth", EQ_LOW_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
+    {"Mid Bandwidth", EQ_MID_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
+    {"High Bandwidth", EQ_HIGH_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
 
     {"EQ B Enable", EQ_ENABLE, EQ_B_POSITION, &values_on_off},
     {"EQ B Bass", EQ_BASS, EQ_B_POSITION, &values_eq_db},
@@ -3558,6 +4136,11 @@ static Modifier modifiers[] = {
     {"Octaver Octave 1", OCTAVER_OCTAVE1, CHORUSFX_POSITION, &values_0_to_99},
     {"Octaver Octave 2", OCTAVER_OCTAVE2, CHORUSFX_POSITION, &values_0_to_99},
     {"Octaver Dry Level", OCTAVER_DRY_LEVEL, CHORUSFX_POSITION, &values_0_to_99},
+    {"Left Wet Level",  CHORUS_WET_LEFT_LVL,  CHORUSFX_POSITION, &values_0_to_99},
+    {"Right Wet Level", CHORUS_WET_RIGHT_LVL, CHORUSFX_POSITION, &values_0_to_99},
+    {"Pan Wet", CHORUS_PAN_WET, CHORUSFX_POSITION, &values_pan_percent,},
+    {"Pan Dry", CHORUS_PAN_DRY, CHORUSFX_POSITION, &values_pan_percent,},
+    {"Mod Pre/Post", CHORUSFX_PRE_POST, CHORUSFX_POSITION, &values_pre_post},
 
     {"Delay Enable", DELAY_ON_OFF, DELAY_POSITION, &values_on_off},
     {"Delay Time", DELAY_TIME, DELAY_POSITION, &values_delay_time},
@@ -3572,20 +4155,38 @@ static Modifier modifiers[] = {
     {"Delay Mod Depth", DELAY_DEPTH, DELAY_POSITION, &values_0_to_99},
     {"Delay Tape Wow", DELAY_TAPE_WOW, DELAY_POSITION, &values_0_to_99},
     {"Delay Tape Flut", DELAY_TAPE_FLUTTER, DELAY_POSITION, &values_0_to_99},
+    {"Delay Stereo/Mono", DELAY_STEREO_MONO, DELAY_POSITION, &values_stereo_mono},
+
     {"Reverb Enable", REVERB_ON_OFF, REVERB_POSITION, &values_on_off},
     {"Reverb Decay", REVERB_DECAY, REVERB_POSITION, &values_0_to_99},
     {"Reverb Liveliness", REVERB_LIVELINESS, REVERB_POSITION, &values_0_to_99},
     {"Reverb Level", REVERB_LEVEL, REVERB_POSITION, &values_0_to_99},
     {"Reverb Predelay", REVERB_PREDELAY, REVERB_POSITION, &values_0_to_150},
+    {"Reverb Pan Left", REVERB_WET_LEFT_LVL, REVERB_POSITION, &values_0_to_99},
+    {"Reverb Pan Right", REVERB_WET_RIGHT_LVL, REVERB_POSITION, &values_0_to_99},
+
     {"Volume Pre FX", PRESET_LEVEL, VOLUME_PRE_FX_POSITION, &values_0_to_99},
     {"Volume Post FX", PRESET_LEVEL, VOLUME_POST_FX_POSITION, &values_0_to_99},
 
     {"Delay Intensity", DELAY_INTENSITY, DELAY_POSITION, &values_0_to_99},
     {"Delay Tempo Division", DELAY_MULTIPLIER, DELAY_POSITION, &values_delay_mult},
+    {"Delay Tempo Division", DELAY_TEMPO_DIVISION, DELAY_POSITION, &values_delay_division},
     {"Delay Echo", DELAY_ECHO, DELAY_POSITION, &values_0_to_99},
+    {"Delay Looper Record", DELAY_LOOPER_RECORD, DELAY_POSITION, &values_on_off},
+    {"Delay Wet Left",  DELAY_WET_LEFT_LVL,  DELAY_POSITION, &values_0_to_99},
+    {"Delay Wet Right", DELAY_WET_RIGHT_LVL, DELAY_POSITION, &values_0_to_99},
+
+    {"Wah Position", WAH_PEDAL_POSITION, WAH_POSITION, &values_0_to_99},
+    {"Wah Level", WAH_LEVEL, WAH_POSITION, &values_db_m6_to_12},
+    {"Wah Enable", WAH_ON_OFF, WAH_POSITION, &values_on_off},
 
     {"Amp Loop Enable", AMP_LOOP_ON_OFF, AMP_LOOP_POSITION, &values_on_off},
     {"Stomp Loop Enable", STOMP_LOOP_ON_OFF, STOMP_LOOP_POSITION, &values_0_to_1},
+
+    {"LFO1 Speed(HZ)", LFO_SPEED, LFO1_POSITION, &values_lfo_speed},
+    {"LFO2 Speed(HZ)", LFO_SPEED, LFO2_POSITION, &values_lfo_speed},
+
+    {"Preset Level", PRESET_LEVEL, PRESET_POSITION, &values_0_to_99},
 };
 
 int n_modifiers = G_N_ELEMENTS(modifiers);
@@ -3598,6 +4199,18 @@ int n_modifiers = G_N_ELEMENTS(modifiers);
 static XmlLabel xml_on_off_labels[] = {
     {0, "Off"},
     {1, "On"},
+};
+
+static XmlLabel xml_amp_loop_input_select_labels[] = {
+    {0, "Stereo"},
+    {1, "Left"},
+    {2, "Right"},
+    {3, "Sum"},
+};
+
+static XmlLabel xml_amp_loop_select_send_labels[] = {
+    {0, "Distortion"}, // TODO: verify
+    {1, "Amp"},
 };
 
 static XmlLabel xml_pickup_labels[] = {
@@ -3635,6 +4248,7 @@ static XmlLabel xml_dist_labels[] = {
     {DIST_TYPE_CLASSIC_FUZZ, "Classic Fuzz"},
     {DIST_TYPE_FUZZY, "Fuzzy"},
     {DIST_TYPE_MP, "Big Pi"},
+    {DIST_TYPE_3BANDEQ, "PEQ"},
 };
 
 static XmlLabel xml_amp_channel_labels[] = {
@@ -3739,6 +4353,17 @@ static XmlLabel xml_amp_cab_labels[] = {
     {AMP_CAB_DIGI_CHUNK, "DigiTech\xc2\xae Chunk 4x12"},
     {AMP_CAB_DIGI_SPANK2_12, "DigiTech\xc2\xae Spank 2x12"},
     {AMP_CAB_DIGI_SPKR_COMP, "DigiTech\xc2\xae Spkr Comp"},
+
+    {GSP1101_AMP_CAB_USER1, "User Cab 1"},
+    {GSP1101_AMP_CAB_USER2, "User Cab 2"},
+    {GSP1101_AMP_CAB_USER3, "User Cab 3"},
+    {GSP1101_AMP_CAB_USER4, "User Cab 4"},
+    {GSP1101_AMP_CAB_USER5, "User Cab 5"},
+    {GSP1101_AMP_CAB_USER6, "User Cab 6"},
+    {GSP1101_AMP_CAB_USER7, "User Cab 7"},
+    {GSP1101_AMP_CAB_USER8, "User Cab 8"},
+    {GSP1101_AMP_CAB_USER9, "User Cab 9"},
+    {GSP1101_AMP_CAB_USER10, "User Cab 10"},
 
     {GNX_AMP_CAB_DIRECT, "Direct"},
     {GNX_AMP_CAB_TWEED1_8, "Tweed 1x8"},
@@ -3959,6 +4584,77 @@ static XmlLabel xml_exp_assign_labels[] = {
    {EXP_VOLUME_POST_FX, "Volume Post FX"},
 };
 
+// TODO: verify all of these,
+// though they come from xml_settings[] and are probably correct.
+static XmlLabel xml_link_to_labels[] = {
+    {0, "None"},
+    {LINK_TO_X(VOLUME_PRE_FX, PRESET_LEVEL),         "Volume Pre FX"},
+    {LINK_TO_X(VOLUME_POST_FX, PRESET_LEVEL),        "Volume Post FX"},
+    {LINK_TO_X(PRESET, PRESET_LEVEL),                "Preset Level"},
+    {LINK_TO_X(LFO1, LFO_SPEED),                     "LFO1 Speed"},
+    {LINK_TO_X(LFO2, LFO_SPEED),                     "LFO2 Speed"},
+    {LINK_TO_X(WAH, WAH_ON_OFF),                     "Wah Enable"},
+    {LINK_TO_X(WAH, WAH_LEVEL),                      "Wah Level"},
+    {LINK_TO_X(WAH, WAH_PEDAL_POSITION),             "Wah Pedal"},
+    {LINK_TO_X(COMP, COMP_ON_OFF),                   "Compressor Enable"},
+    {LINK_TO_X(COMP, COMP_SUSTAIN),                  "Compressor Sustain"},
+    {LINK_TO_X(COMP, COMP_TONE),                     "Compressor Tone"},
+    {LINK_TO_X(COMP, COMP_ATTACK),                   "Compressor Attack"},
+    {LINK_TO_X(COMP, COMP_LEVEL),                    "Compressor Level"},
+    {LINK_TO_X(COMP, GSP1101_COMP_POSITION),         "Compressor Pre/Post"},
+    {LINK_TO_X(DIST, DIST_ON_OFF),                   "Distortion Enable"},
+    {LINK_TO_X(DIST, DIST_SCREAMER_DRIVE),           "Distortion Drive"},
+    {LINK_TO_X(DIST, DIST_SCREAMER_TONE),            "Distortion Tone"},
+    {LINK_TO_X(DIST, DIST_SCREAMER_LVL),             "Distortion Level"},
+    {LINK_TO_X(AMP_A, AMP_ON_OFF),                   "Amp Enable"},
+    {LINK_TO_X(AMP_A, AMP_LEVEL),                    "Amp Level"},
+    {LINK_TO_X(AMP_A, AMP_LPF_TO_XLR),               "Cab Enable LPF to XLR"},
+    {LINK_TO_X(NOISEGATE, NOISEGATE_ON_OFF),         "Gate Enable"},
+    {LINK_TO_X(NOISEGATE, NOISEGATE_GATE_THRESHOLD), "Gate Threshold"},
+    {LINK_TO_X(NOISEGATE, NOISEGATE_ATTACK),         "Gate Attack"},
+    {LINK_TO_X(NOISEGATE, NOISEGATE_RELEASE),        "Gate Release"},
+    {LINK_TO_X(NOISEGATE, NOISEGATE_ATTN),           "Gate Attenuation"},
+    {LINK_TO_X(AMP_B, AMP_PREAMP_LOOP_EXT),          "Loop Enable"},
+    {LINK_TO_X(AMP_B, AMP_LOOP_INPUT_SELECT),        "Loop Input Select"},
+    {LINK_TO_X(AMP_B, AMP_LOOP_INT_MIX_LEFT_LVL),    "Loop Internal Mix Left Level"},
+    {LINK_TO_X(AMP_B, AMP_LOOP_INT_MIX_RIGHT_LVL),   "Loop Internal Mix Right Level"},
+    {LINK_TO_X(AMP_B, AMP_LOOP_EXT_MIX_LEFT_LVL),    "Loop External Mix Left Level"},
+    {LINK_TO_X(AMP_B, AMP_LOOP_EXT_MIX_RIGHT_LVL),   "Loop External Mix Right Level"},
+    {LINK_TO_X(AMP_B, AMP_LOOP_SELECT_SEND),         "Loop Select Send"},
+    {LINK_TO_X(AMP_B, AMP_LOOP_SEND_LVL),            "Loop Send Level"},
+    {LINK_TO_X(EQ_A, EQ_ENABLE),                     "EQ Enable"},
+    {LINK_TO_X(EQ_A, EQ_BASS),                       "EQ Low Level"},
+    {LINK_TO_X(EQ_A, EQ_LOW_FREQ),                   "EQ Low Freq"},
+    {LINK_TO_X(EQ_A, EQ_LOW_BANDWIDTH),              "EQ Low Bandwidth"},
+    {LINK_TO_X(EQ_A, EQ_MID),                        "EQ Mid Level"},
+    {LINK_TO_X(EQ_A, EQ_MID_FREQ),                   "EQ Mid Freq"},
+    {LINK_TO_X(EQ_A, EQ_MID_BANDWIDTH),              "EQ Mid Bandwidth"},
+    {LINK_TO_X(EQ_A, EQ_TREB),                       "EQ High Level"},
+    {LINK_TO_X(EQ_A, EQ_HIGH_FREQ),                  "EQ High Freq"},
+    {LINK_TO_X(EQ_A, EQ_HIGH_BANDWIDTH),             "EQ High Bandwidth"},
+    {LINK_TO_X(CHORUSFX, CHORUSFX_ON_OFF),           "Chorus/FX Enable"},
+    {LINK_TO_X(CHORUSFX, CHORUSFX_PRE_POST),         "Chorus/FX Position"},
+    {LINK_TO_X(CHORUSFX, CHORUS_SPEED),              "Chorus Speed"},
+    {LINK_TO_X(CHORUSFX, CHORUS_DEPTH),              "Chorus Depth"},
+    {LINK_TO_X(CHORUSFX, CHORUS_WAVE),               "Chorus Waveform"},
+    {LINK_TO_X(CHORUSFX, CHORUS_LEVEL),              "Chorus Level"},
+    {LINK_TO_X(CHORUSFX, CHORUS_WET_LEFT_LVL),       "FX Wet Left"},
+    {LINK_TO_X(CHORUSFX, CHORUS_WET_RIGHT_LVL),      "FX Wet Right"},
+    {LINK_TO_X(DELAY, DELAY_ON_OFF),                 "Delay Enable"},
+    {LINK_TO_X(DELAY, DELAY_ECHO),                   "Delay Echo"},
+    {LINK_TO_X(DELAY, DELAY_INTENSITY),              "Delay Intensity"},
+    {LINK_TO_X(DELAY, DELAY_WET_LEFT_LVL),           "Delay Wet Left"},
+    {LINK_TO_X(DELAY, DELAY_WET_RIGHT_LVL),          "Delay Wet Right"},
+    {LINK_TO_X(DELAY, DELAY_TEMPO_DIVISION),         "Delay Tempo Division"},
+    {LINK_TO_X(REVERB, REVERB_ON_OFF),               "Reverb Enable"},
+    {LINK_TO_X(REVERB, REVERB_PREDELAY),             "Reverb Predelay"},
+    {LINK_TO_X(REVERB, REVERB_DECAY),                "Reverb Decay"},
+    {LINK_TO_X(REVERB, REVERB_LIVELINESS),           "Reverb Liveliness"},
+    {LINK_TO_X(REVERB, REVERB_LEVEL),                "Reverb Level"},
+    {LINK_TO_X(REVERB, REVERB_WET_LEFT_LVL),         "Reverb Pan Left"},
+    {LINK_TO_X(REVERB, REVERB_WET_RIGHT_LVL),        "Reverb Pan Right"},
+};
+
 static XmlLabel xml_vswitch_toggle_labels[] = {
     {VSWITCH_TYPE_TOGGLE, "Toggle"},
 };
@@ -4053,6 +4749,11 @@ static XmlLabel xml_fx_lib_labels[] = {
 static XmlLabel xml_rhold_labels[] = {
     {100, "RHold"},
 };
+
+static XmlLabel xml_seamless_labels[] = {
+    {191, "Hold"},
+};
+
 static XmlLabel xml_eq_low_freq_labels[] = {
     {0, "60Hz"},
     {1, "63Hz"},
@@ -4185,6 +4886,47 @@ static XmlLabel xml_delay_mult_labels[] = {
     {DELAY_3_QUARTR, "3 Quarter"},
 };
 
+// TODO: verify
+static XmlLabel xml_delay_division_labels[] = {
+    {DELAY_DIVISION_SIXTEENTH,       "Sixteenth"},
+    {DELAY_DIVISION_EIGHTH_TRIPLET,  "3 Eighth"},
+    {DELAY_DIVISION_EIGHTH,          "Eighth"},
+    {DELAY_DIVISION_QUARTER_TRIPLET, "3 Quarter"},
+    {DELAY_DIVISION_DOTTED_EIGHTH,   "Dotted Eight"}, // verified
+    {DELAY_DIVISION_QUARTER,         "Quarter"}, // verified
+    {DELAY_DIVISION_HALF_TRIPLET,    "3 Half"},
+    {DELAY_DIVISION_DOTTED_QUARTER,  "Dotted Quarter"},
+    {DELAY_DIVISION_HALF,            "Half"},
+    {DELAY_DIVISION_WHOLE,           "Whole"},
+};
+
+static XmlLabel xml_stereo_mono_labels[] = {
+    {DELAY_STEREO, "Stereo"},
+    {DELAY_MONO,   "Mono"},
+};
+
+static XmlLabel xml_link_controller_labels[] = {
+    {LINK_CONTROLLER_NONE, "None"},
+    {LINK_CONTROLLER_1,    "Controller 1"},
+    {LINK_CONTROLLER_2,    "Controller 2"},
+    {LINK_CONTROLLER_3,    "Controller 3"},
+    {LINK_CONTROLLER_4,    "Controller 4"},
+    {LINK_CONTROLLER_5,    "Controller 5"},
+    {LINK_CONTROLLER_6,    "Controller 6"},
+    {LINK_CONTROLLER_7,    "Controller 7"},
+    {LINK_CONTROLLER_8,    "Controller 8"},
+    {LINK_CONTROLLER_9,    "Controller 9"},
+    {LINK_CONTROLLER_10,   "Controller 10"},
+    {LINK_CONTROLLER_11,   "Controller 11"},
+    {LINK_CONTROLLER_12,   "Controller 12"},
+    {LINK_CONTROLLER_13,   "Controller 13"},
+    {LINK_CONTROLLER_14,   "Controller 14"},
+    {LINK_CONTROLLER_15,   "Controller 15"},
+    {LINK_CONTROLLER_16,   "Controller 16"},
+    {LINK_CONTROLLER_LFO1, "LFO1"}, // TODO: verify
+    {LINK_CONTROLLER_LFO2, "LFO2"}, // TODO: verify
+};
+
 /* Array to map id/position pairs to labels and settings. */
 XmlSettings xml_settings[] = {
     {0, 0, "None", NULL,},
@@ -4200,6 +4942,7 @@ XmlSettings xml_settings[] = {
     {COMP_ATTACK, COMP_POSITION, "Compressor Attack", &values_0_to_99,},
     {COMP_OUTPUT, COMP_POSITION, "Compressor Output", &values_0_to_99,},
     {COMP_SENSITIVITY, COMP_POSITION, "Compressor Sensitivity", &values_0_to_99,},
+    {GSP1101_COMP_POSITION, COMP_POSITION, "Compressor Pre/Post", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
 
     {DIST_TYPE, DIST_POSITION, "Dist Type", &values_dist_type, xml_dist_labels, G_N_ELEMENTS(xml_dist_labels)},
     {DIST_ON_OFF, DIST_POSITION, "Dist Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
@@ -4245,12 +4988,32 @@ XmlSettings xml_settings[] = {
     {DIST_MP_TONE, DIST_POSITION, "Dist Tone", &values_0_to_99,},
     {DIST_MP_VOLUME, DIST_POSITION, "Dist Volume", &values_0_to_99,},
 
+    {DIST_3BANDEQ_LOW_GAIN,  DIST_POSITION, "SB EQ Low Level",      &values_eq_db,},
+    {DIST_3BANDEQ_LOW_FREQ,  DIST_POSITION, "SB EQ Low Freq",       &values_eq_low_freq, xml_eq_low_freq_labels, G_N_ELEMENTS(xml_eq_low_freq_labels)},
+    {DIST_3BANDEQ_LOW_WIDTH, DIST_POSITION, "SB EQ Low Bandwidth",  &values_eq_bandwidth, xml_eq_bandwidth_labels, G_N_ELEMENTS(xml_eq_bandwidth_labels)},
+    {DIST_3BANDEQ_MID_GAIN,  DIST_POSITION, "SB EQ Mid Level",      &values_eq_db,},
+    {DIST_3BANDEQ_MID_FREQ,  DIST_POSITION, "SB EQ Mid Freq",       &values_eq_mid_freq, xml_eq_mid_freq_labels, G_N_ELEMENTS(xml_eq_mid_freq_labels)},
+    {DIST_3BANDEQ_MID_WIDTH, DIST_POSITION, "SB EQ Mid Bandwidth",  &values_eq_bandwidth, xml_eq_bandwidth_labels, G_N_ELEMENTS(xml_eq_bandwidth_labels)},
+    {DIST_3BANDEQ_HI_GAIN,   DIST_POSITION, "SB EQ High Level",     &values_eq_db,},
+    {DIST_3BANDEQ_HI_FREQ,   DIST_POSITION, "SB EQ High Freq",      &values_eq_high_freq, xml_eq_high_freq_labels, G_N_ELEMENTS(xml_eq_high_freq_labels)},
+    {DIST_3BANDEQ_HI_WIDTH,  DIST_POSITION, "SB EQ High Bandwidth", &values_eq_bandwidth, xml_eq_bandwidth_labels, G_N_ELEMENTS(xml_eq_bandwidth_labels)},
+    {DIST_3BANDEQ_LVL,       DIST_POSITION, "SB EQ Level",          &values_0_to_99,}, // shared with DIST_GUYOD_LVL
+
     {AMP_CHANNEL, AMP_CHANNEL_POSITION, "Amp Channel", &values_a_b, xml_amp_channel_labels, G_N_ELEMENTS(xml_amp_channel_labels)},
 
     {AMP_TYPE, AMP_A_POSITION, "Amp A Type", &values_amp_type, xml_amp_labels, G_N_ELEMENTS(xml_amp_labels)},
     {AMP_ON_OFF, AMP_A_POSITION, "Amp A Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
     {AMP_GAIN, AMP_A_POSITION, "Amp A Gain", &values_0_to_99,},
     {AMP_LEVEL, AMP_A_POSITION, "Amp A Level", &values_0_to_99,},
+    {AMP_LPF_TO_XLR, AMP_A_POSITION, "Cab Enable LPF to XLR", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {AMP_PREAMP_LOOP_EXT, AMP_B_POSITION, "Loop Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {AMP_LOOP_INPUT_SELECT, AMP_B_POSITION, "Loop Input Select", &values_amp_loop_input_select, xml_amp_loop_input_select_labels, G_N_ELEMENTS(xml_amp_loop_input_select_labels)},
+    {AMP_LOOP_INT_MIX_LEFT_LVL, AMP_B_POSITION, "Loop Internal Mix Left Level", &values_0_to_99,},
+    {AMP_LOOP_EXT_MIX_LEFT_LVL, AMP_B_POSITION, "Loop External Mix Left Level", &values_0_to_99,},
+    {AMP_LOOP_SELECT_SEND, AMP_B_POSITION, "Loop Select Send", &values_amp_loop_select_send, xml_amp_loop_select_send_labels, G_N_ELEMENTS(xml_amp_loop_select_send_labels)},
+    {AMP_LOOP_SEND_LVL, AMP_B_POSITION, "Loop Send Level", &values_0_to_99,},
+    {AMP_LOOP_INT_MIX_RIGHT_LVL, AMP_B_POSITION, "Loop Internal Mix Right Level", &values_0_to_99,},
+    {AMP_LOOP_EXT_MIX_RIGHT_LVL, AMP_B_POSITION, "Loop External Mix Right Level", &values_0_to_99,},
 
     {AMP_BYPASS_ON_OFF, AMP_BYPASS_POSITION, "Amp Bypass", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
 
@@ -4390,10 +5153,17 @@ XmlSettings xml_settings[] = {
     {OCTAVER_OCTAVE2 , CHORUSFX_POSITION, "Octaver Octave 2", &values_0_to_99},
     {OCTAVER_DRY_LEVEL, CHORUSFX_POSITION, "Octaver Dry Level", &values_0_to_99},
 
+    {CHORUS_WET_LEFT_LVL,  CHORUSFX_POSITION, "FX Wet Left", &values_0_to_99,},
+    {CHORUS_WET_RIGHT_LVL, CHORUSFX_POSITION, "FX Wet Right", &values_0_to_99,},
+    {CHORUS_PAN_WET, CHORUSFX_POSITION, "FX Pan Left", &values_0_to_99,},
+    {CHORUS_PAN_DRY, CHORUSFX_POSITION, "FX Pan Right", &values_0_to_99,},
+    {CHORUS_DRY_LVL, CHORUSFX_POSITION, "Chorus/FX Dry Level", &values_0_to_99,},
+
     {DELAY_TYPE, DELAY_POSITION, "Delay Type", &values_delay_type, xml_delay_labels, G_N_ELEMENTS(xml_delay_labels)},
     {DELAY_ON_OFF, DELAY_POSITION, "Delay Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
     {DELAY_TIME, DELAY_POSITION, "Delay Time", &values_delay_time,},
     {DELAY_REPEATS, DELAY_POSITION, "Delay Repeats", &values_delay_repeats, xml_rhold_labels, G_N_ELEMENTS(xml_rhold_labels)},
+    {DELAY_TAP_TIME_0_286, DELAY_POSITION, "Delay Tap Time", &values_delay_time_24_310,}, // needs to be verified
     {DELAY_LEVEL, DELAY_POSITION, "Delay Level", &values_0_to_99,},
     {DELAY_DUCK_THRESH, DELAY_POSITION, "Delay Duck Thresh", &values_0_to_99,},
     {DELAY_DUCK_LEVEL, DELAY_POSITION, "Delay Duck Level", &values_0_to_99,},
@@ -4401,6 +5171,17 @@ XmlSettings xml_settings[] = {
     {DELAY_TAPE_WOW, DELAY_POSITION, "Delay Tape Wow", &values_0_to_99,},
     {DELAY_TAPE_FLUTTER, DELAY_POSITION, "Delay Tape Flut", &values_0_to_99,},
     {DELAY_TAP_TIME_0_4990, DELAY_POSITION, "Tap Time", &values_delay_time_0_4990,},
+    {DELAY_TAP_TIME_0_760, DELAY_POSITION, "Delay Tap Time", &values_delay_time_110_870,},
+    {DELAY_ECHO, DELAY_POSITION, "Delay Echo", &values_0_to_99,}, // TODO: verify
+    {DELAY_INTENSITY, DELAY_POSITION, "Delay Intensity", &values_0_to_99,}, // TODO: verify
+    {DELAY_STEREO_MONO, DELAY_POSITION, "Delay Stereo/Mono", &values_stereo_mono, xml_stereo_mono_labels, G_N_ELEMENTS(xml_stereo_mono_labels)},
+    {DELAY_LOOPER_RECORD, DELAY_POSITION, "Delay Looper Record", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {DELAY_TAP_RATIO, DELAY_POSITION, "Delay Tap Ratio", &values_0_to_99,},
+    {DELAY_REPEATS_0_99, DELAY_POSITION, "Delay Repeats", &values_0_to_99},
+    {DELAY_VOLUME, DELAY_POSITION, "Delay Volume", &values_0_to_99},
+    {DELAY_WET_LEFT_LVL,  DELAY_POSITION, "Delay Wet Left", &values_0_to_99,},
+    {DELAY_WET_RIGHT_LVL, DELAY_POSITION, "Delay Wet Right", &values_0_to_99,},
+    {DELAY_DRY_LVL, DELAY_POSITION, "Delay Dry Level", &values_0_to_99,},
 
     {REVERB_TYPE, REVERB_POSITION, "Reverb Type", &values_reverb_type, xml_reverb_labels, G_N_ELEMENTS(xml_reverb_labels)},
     {REVERB_ON_OFF, REVERB_POSITION, "Reverb Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
@@ -4408,6 +5189,9 @@ XmlSettings xml_settings[] = {
     {REVERB_LIVELINESS, REVERB_POSITION, "Reverb Liveliness", &values_0_to_99,},
     {REVERB_LEVEL, REVERB_POSITION, "Reverb Level", &values_0_to_99,},
     {REVERB_PREDELAY, REVERB_POSITION, "Reverb Predelay", &values_0_to_150,},
+    {REVERB_WET_LEFT_LVL, REVERB_POSITION, "Reverb Pan Left", &values_0_to_99,},
+    {REVERB_WET_RIGHT_LVL, REVERB_POSITION, "Reverb Pan Right", &values_0_to_99,},
+    {REVERB_DRY_LVL, REVERB_POSITION, "Reverb Dry Level", &values_0_to_99},
 
     {PRESET_LEVEL, VOLUME_PRE_FX_POSITION, "Volume Pre FX", &values_0_to_99,},
     {PRESET_LEVEL, VOLUME_POST_FX_POSITION, "Volume Post FX", &values_0_to_99,}, 
@@ -4416,9 +5200,15 @@ XmlSettings xml_settings[] = {
     {WAH_ON_OFF, WAH_POSITION, "Wah Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
     {WAH_PEDAL_POSITION, WAH_POSITION, "Wah Position", &values_0_to_99,},
     {WAH_LEVEL, WAH_POSITION, "Wah Vol. Boost", &values_db_boost,},
+    {WAH_FCPDL1_MIN_POSITION, WAH_POSITION, "Wah FC Pdl1 Min", &values_0_to_99,},
+    {WAH_FCPDL1_MAX_POSITION, WAH_POSITION, "Wah FC Pdl1 Max", &values_0_to_99,},
+    {WAH_CCPDL_TYPE_POSITION, WAH_POSITION, "Wah CC Toggle", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {WAH_CCPDL_THRESH_POSITION, WAH_POSITION, "Wah CC Threshold", &values_0_to_99,},
 
     {PRESET_LEVEL, PRESET_POSITION, "Preset Level", &values_0_to_99,},
 
+    {SEAMLESS_HOLD, SEAMLESS_POSITION, "Seamless Hold Time", &values_seamless_offset, xml_seamless_labels, G_N_ELEMENTS(xml_seamless_labels)},
+    {SEAMLESS_RAMP, SEAMLESS_POSITION, "Seamless Ramp Time", &values_seamless_offset,},
     {EXP_ASSIGN1, EXP_POSITION, "Pedal Assign 1", &values_exp_assign, xml_exp_assign_labels, G_N_ELEMENTS(xml_exp_assign_labels)},
     {EXP_MIN, EXP_POSITION, "Pedal Min 1", &values_0_to_99,},
     {EXP_MAX, EXP_POSITION, "Pedal Max 1", &values_0_to_99,},
@@ -4487,10 +5277,48 @@ XmlSettings xml_settings[] = {
     {FX_LIB_LEVEL_MAX1, LIB_POSITION_B, "FxLib B LvlMax1", &values_0_to_99,},
     {FX_LIB_LEVEL_MAX2, LIB_POSITION_B, "FxLib B LvlMax2", &values_0_to_99,},
     {FX_LIB_LEVEL_MAX3, LIB_POSITION_B, "FxLib B LvlMax3", &values_0_to_99,},
-    
+
+    {LINK_CONTROLLER, LINK_POSITION_1, "Link 1 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
+    {LINK_CONTROLLER, LINK_POSITION_2, "Link 2 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
+    {LINK_CONTROLLER, LINK_POSITION_3, "Link 3 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
+    {LINK_CONTROLLER, LINK_POSITION_4, "Link 4 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
+    {LINK_CONTROLLER, LINK_POSITION_5, "Link 5 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
+    {LINK_CONTROLLER, LINK_POSITION_6, "Link 6 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
+    {LINK_CONTROLLER, LINK_POSITION_7, "Link 7 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
+    {LINK_CONTROLLER, LINK_POSITION_8, "Link 8 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
+
+    {LINK_TO, LINK_POSITION_1, "Link 1 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_2, "Link 2 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_3, "Link 3 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_4, "Link 4 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_5, "Link 5 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_6, "Link 6 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_7, "Link 7 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_8, "Link 8 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+
+    {LINK_MIN, LINK_POSITION_1, "Link 1 Min", &values_0_to_99,},
+    {LINK_MIN, LINK_POSITION_2, "Link 2 Min", &values_0_to_99,},
+    {LINK_MIN, LINK_POSITION_3, "Link 3 Min", &values_0_to_99,},
+    {LINK_MIN, LINK_POSITION_4, "Link 4 Min", &values_0_to_99,},
+    {LINK_MIN, LINK_POSITION_5, "Link 5 Min", &values_0_to_99,},
+    {LINK_MIN, LINK_POSITION_6, "Link 6 Min", &values_0_to_99,},
+    {LINK_MIN, LINK_POSITION_7, "Link 7 Min", &values_0_to_99,},
+    {LINK_MIN, LINK_POSITION_8, "Link 8 Min", &values_0_to_99,},
+
+    {LINK_MAX, LINK_POSITION_1, "Link 1 Max", &values_0_to_99,},
+    {LINK_MAX, LINK_POSITION_2, "Link 2 Max", &values_0_to_99,},
+    {LINK_MAX, LINK_POSITION_3, "Link 3 Max", &values_0_to_99,},
+    {LINK_MAX, LINK_POSITION_4, "Link 4 Max", &values_0_to_99,},
+    {LINK_MAX, LINK_POSITION_5, "Link 5 Max", &values_0_to_99,},
+    {LINK_MAX, LINK_POSITION_6, "Link 6 Max", &values_0_to_99,},
+    {LINK_MAX, LINK_POSITION_7, "Link 7 Max", &values_0_to_99,},
+    {LINK_MAX, LINK_POSITION_8, "Link 8 Max", &values_0_to_99,},
+
     // RP1000 values
     {DELAY_TAP_TIME_0_5000, DELAY_POSITION, "Delay Tap Time", &values_delay_time_0_5000,},
+    // TODO: verify duplication of "Delay Tempo Division" label
     {DELAY_MULTIPLIER, DELAY_POSITION, "Delay Tempo Division", &values_delay_mult, xml_delay_mult_labels, G_N_ELEMENTS(xml_delay_mult_labels)},
+    {DELAY_TEMPO_DIVISION, DELAY_POSITION, "Delay Tempo Division", &values_delay_division, xml_delay_division_labels, G_N_ELEMENTS(xml_delay_division_labels)},
     {MOD_PRE_POST, STOMP_LOOP_POSITION, "Stomp Pre/Post", &values_pre_post, xml_pre_post_labels, G_N_ELEMENTS(xml_pre_post_labels)},
     {STOMP_LOOP_ON_OFF, STOMP_LOOP_POSITION, "Stomp Loop Enable", &values_0_to_1,},
     {AMP_LOOP_ON_OFF, AMP_LOOP_POSITION, "Amp Loop Enable", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
@@ -4511,6 +5339,19 @@ XmlSettings xml_settings[] = {
     {VSWITCH_MIN, FOOTSWITCH_10_POSITION, "Footswitch 10 Min", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
     {VSWITCH_MAX, FOOTSWITCH_10_POSITION, "Footswitch 10 Max", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
 
+    {GSP1101_CONFIG1_REG, FOOTSWITCH_6_CC_ON_OFF_POSITION, "FSw6 Cc On Off", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {GSP1101_CONFIG1_REG, FOOTSWITCH_7_CC_ON_OFF_POSITION, "FSw7 Cc On Off", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {GSP1101_CONFIG1_REG, FOOTSWITCH_8_CC_ON_OFF_POSITION, "FSw8 Cc On Off", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {GSP1101_CONFIG1_REG, FOOTSWITCH_9_CC_ON_OFF_POSITION, "FSw9 Cc On Off", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {GSP1101_CONFIG1_REG, FOOTSWITCH_10_CC_ON_OFF_POSITION,"FSw10 On Off", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {GSP1101_CONFIG1_REG, EXT_LEFT_CC_ON_OFF_POSITION, "Ext Left Cc On Off", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {GSP1101_CONFIG1_REG, EXT_MID_CC_ON_OFF_POSITION, "Ext Mid Cc On Off", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {GSP1101_CONFIG1_REG, EXT_RIGHT_CC_ON_OFF_POSITION, "Ext Right Cc On Off", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+
+    {ROUTING_POST_DEFEAT_DRY_ON_OFF, ROUTING_POSITION, "Post Defeat Dry", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {ROUTING_SERIES_PARALLEL_CFG, ROUTING_POSITION, "Series Parallel Config", &values_on_off, xml_on_off_labels, G_N_ELEMENTS(xml_on_off_labels)},
+    {ROUTING_PARALLEL_DRY_LEFT_LVL, ROUTING_POSITION, "Parallel Dry Left", &values_0_to_99},
+    {ROUTING_PARALLEL_DRY_RIGHT_LVL, ROUTING_POSITION, "Parallel Dry Right", &values_0_to_99},
 
     // Global settings, not part of presets or standard XML.
     {TUNING_REFERENCE, GLOBAL_POSITION, "Tuning Reference", &values_0_to_99,},
@@ -4554,6 +5395,15 @@ gchar *Positions[] = {
     [ LIB_POSITION_B ] = "Library B",
     [ AMP_LOOP_POSITION ] = "Amp Loop",
     [ STOMP_LOOP_POSITION ] = "Stomp Loop",
+    [ LINK_POSITION_1 ] = "Link 1",
+    [ LINK_POSITION_2 ] = "Link 2",
+    [ LINK_POSITION_3 ] = "Link 3",
+    [ LINK_POSITION_4 ] = "Link 4",
+    [ LINK_POSITION_5 ] = "Link 5",
+    [ LINK_POSITION_6 ] = "Link 6",
+    [ LINK_POSITION_7 ] = "Link 7",
+    [ LINK_POSITION_8 ] = "Link 8",
+    [ SEAMLESS_POSITION ] = "Seamless",
 };
 
 guint max_position = G_N_ELEMENTS(Positions);

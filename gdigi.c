@@ -558,6 +558,15 @@ void push_message(GString *msg)
             create_modifier_group(LFO1_POSITION, LFO_TYPE);
             create_modifier_group(LFO2_POSITION, LFO_TYPE);
 
+            create_modifier_group(LINK_POSITION_1, LINK_TO);
+            create_modifier_group(LINK_POSITION_2, LINK_TO);
+            create_modifier_group(LINK_POSITION_3, LINK_TO);
+            create_modifier_group(LINK_POSITION_4, LINK_TO);
+            create_modifier_group(LINK_POSITION_5, LINK_TO);
+            create_modifier_group(LINK_POSITION_6, LINK_TO);
+            create_modifier_group(LINK_POSITION_7, LINK_TO);
+            create_modifier_group(LINK_POSITION_8, LINK_TO);
+
             GDK_THREADS_LEAVE();
 
             return;
