@@ -198,6 +198,7 @@ format_value (XmlSettings *xml, guint value)
         break;
 
     case VALUE_TYPE_POSID:
+    case VALUE_TYPE_MINMAX:
         g_string_printf(buf, "%d", value);
         break;
 

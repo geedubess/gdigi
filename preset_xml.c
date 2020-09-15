@@ -166,17 +166,67 @@ write_preset_to_xml(Preset *preset, gchar *filename)
             printf("Failed to get xml settings for id %d position %d\n",
                     param->id, param->position);
         } else {
-            ValueType type;
             gchar *suffix = "";
             gdouble step = 1.0;
             gint offset = 0;
             gint decimal = 0;
-            EffectValues *values = NULL;
+            EffectValues *values = xml->values;
+            ValueType type = values->type;
 
             rc = xmlTextWriterWriteElement(writer, BAD_CAST "Name",
                                                    BAD_CAST xml->label);
-            values = xml->values;
-            type = values->type;
+
+            /*
+             * If this item value is linked to another position:ID,
+             * use the value min/max/type/labels from the linked item.
+             * Eg, if this is 8772:28 (LINK_MIN:LINK_POSITION_1), then
+             * look up value from 8770:28 (LINK_TO:LINK_POSITION_1).
+             * If this is 2626:18 (PRESET_LEVEL), then use the values
+             * data from there to generate a label for the original param->value.
+             */
+
+            if (type & VALUE_TYPE_MINMAX) {
+                type &= ~VALUE_TYPE_MINMAX;
+                GList *iter_params_minmax = preset->params;
+                XmlSettings *linked_xml = NULL;
+                guint linked_position;
+                guint linked_id;
+
+                /* figure out what the corresponding LINK_TO register is linked to */
+                /* search all params in this preset for the LINK_TO target */
+
+                while (iter_params_minmax) {
+                    SettingParam *param_minmax = (SettingParam *) iter_params_minmax->data;
+
+                    if (param_minmax->id == LINK_TO &&
+                        param_minmax->position == param->position) {
+                        /* Found the corresponding LINK_TO register */
+                        linked_position = param_minmax->value >> 16;
+                        linked_id = param_minmax->value & 0xffff;
+                        linked_xml = get_xml_settings(linked_id, linked_position);
+                        break;
+                    } else {
+                        iter_params_minmax = iter_params_minmax->next;
+                        continue;
+                    }
+                }
+
+                if (linked_xml) {
+                    values = linked_xml->values;
+                    if (values) {
+                        xml = linked_xml;
+                        type = values->type;
+                    } else {
+                        /* linked to nothing */
+                        type = VALUE_TYPE_NONE;
+                    }
+                } else {
+                    printf("Failed to get linked xml settings for id %d position %d\n",
+                            linked_id, linked_position);
+                    break;
+                }
+            }
+
             while ((type & VALUE_TYPE_EXTRA) && value_is_extra(values, param->value)) {
                 values = values->extra;
                 type = values->type;
@@ -206,10 +256,10 @@ write_preset_to_xml(Preset *preset, gchar *filename)
             switch (type) {
             case VALUE_TYPE_LABEL:
             {
-                char *textp = map_xml_value(xml, values, param->value);
+               char *textp = map_xml_value(xml, values, param->value);
                 if (!textp) {
-                    g_warning("Unable to map %s value %d for id %d position %d",
-                              xml->label, param->value, param->id,
+                    g_warning("%s: Unable to map %s value %d for id %d position %d",
+                              __FUNCTION__, xml->label, param->value, param->id,
                               param->position);
                     textp = "";
                 }
@@ -237,8 +287,13 @@ write_preset_to_xml(Preset *preset, gchar *filename)
                 rc = xmlTextWriterEndElement(writer);
                 break;
 
+            case VALUE_TYPE_POSID:
+                /* packed position/ID is used internally for the assignable links */
+                break;
+
             default:
-                g_warning("write_preset_to_xml: Unhandled value type %d", type);
+                g_warning("write_preset_to_xml: Unhandled value type %d in %d:%d",
+                        type, param->id, param->position);
                 break;
             }
         }

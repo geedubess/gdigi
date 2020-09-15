@@ -28,7 +28,8 @@ typedef enum {
   VALUE_TYPE_EXTRA  = 1 << 4, /**< use extra values */
   VALUE_TYPE_DECIMAL= 1 << 5, /**< display decimal places */
   VALUE_TYPE_POSID  = 1 << 6, /**< Packed Position/ID: (pos << 16) | id */
-  VALUE_TYPE_NONE   = 1 << 7, /**< no value displayed */
+  VALUE_TYPE_MINMAX = 1 << 7, /**< Linked min/max from another register (lookup) */
+  VALUE_TYPE_NONE   = 1 << 8, /**< no value displayed */
 } ValueType;
 
 typedef struct _EffectValues {
@@ -44,7 +45,7 @@ typedef struct _EffectValues {
     struct _EffectValues *extra;
                     /**< additional value range,
                          use it when there're different range types */
-    gint decimal;   /**< amount of decimal places to display */
+    gint decimal;   /**< number of decimal places to display */
 } EffectValues;
 
 typedef struct {

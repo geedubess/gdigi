@@ -864,6 +864,16 @@ static EffectValues values_lfo_assign = {
     .type = VALUE_TYPE_POSID,
 };
 
+static EffectValues values_link_to_assign = {
+    .min = 0.0, .max = 0x7fffffff,
+    .type = VALUE_TYPE_LABEL
+};
+
+static EffectValues values_link_minmax_assign = {
+    .min = 0.0, .max = 0x7fffffff,
+    .type = VALUE_TYPE_MINMAX
+};
+
 static EffectValues values_lfo_none = {
     .min = 0.0, .max = 0.0,
     .type = VALUE_TYPE_NONE,
@@ -5294,32 +5304,32 @@ XmlSettings xml_settings[] = {
     {LINK_CONTROLLER, LINK_POSITION_7, "Link 7 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
     {LINK_CONTROLLER, LINK_POSITION_8, "Link 8 Controller", &values_link_controller, xml_link_controller_labels, G_N_ELEMENTS(xml_link_controller_labels)},
 
-    {LINK_TO, LINK_POSITION_1, "Link 1 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
-    {LINK_TO, LINK_POSITION_2, "Link 2 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
-    {LINK_TO, LINK_POSITION_3, "Link 3 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
-    {LINK_TO, LINK_POSITION_4, "Link 4 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
-    {LINK_TO, LINK_POSITION_5, "Link 5 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
-    {LINK_TO, LINK_POSITION_6, "Link 6 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
-    {LINK_TO, LINK_POSITION_7, "Link 7 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
-    {LINK_TO, LINK_POSITION_8, "Link 8 Param", &values_exp_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_1, "Link 1 Param", &values_link_to_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_2, "Link 2 Param", &values_link_to_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_3, "Link 3 Param", &values_link_to_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_4, "Link 4 Param", &values_link_to_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_5, "Link 5 Param", &values_link_to_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_6, "Link 6 Param", &values_link_to_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_7, "Link 7 Param", &values_link_to_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
+    {LINK_TO, LINK_POSITION_8, "Link 8 Param", &values_link_to_assign, xml_link_to_labels, G_N_ELEMENTS(xml_link_to_labels)},
 
-    {LINK_MIN, LINK_POSITION_1, "Link 1 Min", &values_0_to_99,},
-    {LINK_MIN, LINK_POSITION_2, "Link 2 Min", &values_0_to_99,},
-    {LINK_MIN, LINK_POSITION_3, "Link 3 Min", &values_0_to_99,},
-    {LINK_MIN, LINK_POSITION_4, "Link 4 Min", &values_0_to_99,},
-    {LINK_MIN, LINK_POSITION_5, "Link 5 Min", &values_0_to_99,},
-    {LINK_MIN, LINK_POSITION_6, "Link 6 Min", &values_0_to_99,},
-    {LINK_MIN, LINK_POSITION_7, "Link 7 Min", &values_0_to_99,},
-    {LINK_MIN, LINK_POSITION_8, "Link 8 Min", &values_0_to_99,},
+    {LINK_MIN, LINK_POSITION_1, "Link 1 Min", &values_link_minmax_assign,},
+    {LINK_MIN, LINK_POSITION_2, "Link 2 Min", &values_link_minmax_assign,},
+    {LINK_MIN, LINK_POSITION_3, "Link 3 Min", &values_link_minmax_assign,},
+    {LINK_MIN, LINK_POSITION_4, "Link 4 Min", &values_link_minmax_assign,},
+    {LINK_MIN, LINK_POSITION_5, "Link 5 Min", &values_link_minmax_assign,},
+    {LINK_MIN, LINK_POSITION_6, "Link 6 Min", &values_link_minmax_assign,},
+    {LINK_MIN, LINK_POSITION_7, "Link 7 Min", &values_link_minmax_assign,},
+    {LINK_MIN, LINK_POSITION_8, "Link 8 Min", &values_link_minmax_assign,},
 
-    {LINK_MAX, LINK_POSITION_1, "Link 1 Max", &values_0_to_99,},
-    {LINK_MAX, LINK_POSITION_2, "Link 2 Max", &values_0_to_99,},
-    {LINK_MAX, LINK_POSITION_3, "Link 3 Max", &values_0_to_99,},
-    {LINK_MAX, LINK_POSITION_4, "Link 4 Max", &values_0_to_99,},
-    {LINK_MAX, LINK_POSITION_5, "Link 5 Max", &values_0_to_99,},
-    {LINK_MAX, LINK_POSITION_6, "Link 6 Max", &values_0_to_99,},
-    {LINK_MAX, LINK_POSITION_7, "Link 7 Max", &values_0_to_99,},
-    {LINK_MAX, LINK_POSITION_8, "Link 8 Max", &values_0_to_99,},
+    {LINK_MAX, LINK_POSITION_1, "Link 1 Max", &values_link_minmax_assign,},
+    {LINK_MAX, LINK_POSITION_2, "Link 2 Max", &values_link_minmax_assign,},
+    {LINK_MAX, LINK_POSITION_3, "Link 3 Max", &values_link_minmax_assign,},
+    {LINK_MAX, LINK_POSITION_4, "Link 4 Max", &values_link_minmax_assign,},
+    {LINK_MAX, LINK_POSITION_5, "Link 5 Max", &values_link_minmax_assign,},
+    {LINK_MAX, LINK_POSITION_6, "Link 6 Max", &values_link_minmax_assign,},
+    {LINK_MAX, LINK_POSITION_7, "Link 7 Max", &values_link_minmax_assign,},
+    {LINK_MAX, LINK_POSITION_8, "Link 8 Max", &values_link_minmax_assign,},
 
     // RP1000 values
     {DELAY_TAP_TIME_0_5000, DELAY_POSITION, "Delay Tap Time", &values_delay_time_0_5000,},
