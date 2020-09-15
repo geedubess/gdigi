@@ -1307,9 +1307,9 @@ static EffectSettings rp500_eq_settings[] = {
     {"Low Freq", EQ_LOW_FREQ, EQ_A_POSITION, &values_eq_low_freq},
     {"Mid Freq", EQ_MID_FREQ_RP500, EQ_A_POSITION, &values_eq_mid_freq},
     {"High Freq", EQ_HIGH_FREQ, EQ_A_POSITION, &values_eq_high_freq},
-    {"Low Bandwidth", EQ_LOW_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
-    {"Mid Bandwidth", EQ_MID_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
-    {"High Bandwidth", EQ_HIGH_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
+    {"Low Width", EQ_LOW_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
+    {"Mid Width", EQ_MID_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
+    {"High Width", EQ_HIGH_BANDWIDTH, EQ_A_POSITION, &values_eq_bandwidth},
 };
 
 static EffectSettings noisegate_silencer_settings[] = {
