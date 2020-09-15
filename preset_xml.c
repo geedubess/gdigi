@@ -129,8 +129,7 @@ write_preset_to_xml(Preset *preset, gchar *filename)
     rc = xmlTextWriterStartElement(writer, BAD_CAST get_preset_filename());
 
     rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "SchemaVersion",
-                                     BAD_CAST "1.2");
-
+                                     BAD_CAST "1.3");
 
     rc = xmlTextWriterWriteAttribute(writer, BAD_CAST "xmlns",
                                      BAD_CAST "http://www.digitech.com/xml/preset");

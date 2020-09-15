@@ -305,6 +305,7 @@ Preset *create_preset_from_data(GList *list)
                 bank = (unsigned char)data->str[8];
                 number = (unsigned char)data->str[9];
                 name = g_strdup(&data->str[10]);
+                g_strchomp(name);
                 modified = (unsigned char)data->str[11+strlen(name)];
 
                 if ((bank == PRESETS_EDIT_BUFFER) && (number == 0)) {
