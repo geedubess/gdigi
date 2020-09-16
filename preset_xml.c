@@ -245,8 +245,13 @@ write_preset_to_xml(Preset *preset, gchar *filename)
 
         rc = xmlTextWriterEndElement(writer);
 
-        iter_params  = iter_params->next;
+        iter_params = iter_params->next;
     }
+
+    rc = xmlTextWriterEndElement(writer);
+
+    /* TODO: figure out what this does */
+    rc = xmlTextWriterWriteElement(writer, BAD_CAST "AmpMode", BAD_CAST "Internal");
 
     rc = xmlTextWriterEndDocument(writer);
     if (rc < 0) {
