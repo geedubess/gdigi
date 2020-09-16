@@ -627,7 +627,7 @@ static EffectValues values_dist_type = {
 };
 
 static EffectValues values_amp_type = {
-    .min = 307.0, .max = 351.0,
+    .min = 306.0, .max = 386.0,
     .type = VALUE_TYPE_LABEL,
 };
 
@@ -3691,6 +3691,16 @@ static XmlLabel xml_amp_labels[] = {
     {AMP_TYPE_ACOUSTIC, "Dread Acoustic"},
     {AMP_TYPE_JUMBO_ACOUSTIC, "Jumbo Acoustic"},
     {AMP_TYPE_DIRECT, "Direct"},
+    {AMP_TYPE_SVT_ROCK_BASS, "SVT Rock Bass"},
+    {AMP_TYPE_SVT_CLASSIC_BASS, "SVT Classic Bass"},
+    {AMP_TYPE_PEG_B15_BASS, "Peg B-15 Bass"},
+    {AMP_TYPE_BASIC_BASS , "Basic Bass"},
+    {AMP_TYPE_SHOWMAN_BASS , "Showman Bass"},
+    {AMP_TYPE_ASH_MODERN_BASS , "Ash Modern Bass"},
+    {AMP_TYPE_BRIT_BASS , "Brit Bass"},
+    {AMP_TYPE_SOLAR_BASS , "Solar 200s Bass"},
+    {AMP_TYPE_BOOGIE_BASS , "Boogie Bass"},
+    {AMP_TYPE_HART_BASS , "Hart Bass"},
 };
 
 static XmlLabel xml_amp_cab_labels[] = {
