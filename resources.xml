@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/org/gdigi/icons">
+    <file preprocess="to-pixdata">images/gdigi.png</file>
+    <file preprocess="to-pixdata">images/icon.png</file>
+    <file preprocess="to-pixdata">images/knob.png</file>
+  </gresource>
+</gresources>

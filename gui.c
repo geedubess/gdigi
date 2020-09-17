@@ -23,9 +23,9 @@
 #include "effects.h"
 #include "preset.h"
 #include "gtkknob.h"
-#include "images/gdigi_icon.h"
 #include "gdigi_xml.h"
 
+extern GResource *gdigi_get_resource (void);
 
 static gchar* MessageID_names[] = {
     [REQUEST_WHO_AM_I] = "REQUEST_WHO_AM_I",
@@ -1581,6 +1581,7 @@ void gui_create(Device *device)
     GtkWidget *notebook;
     GtkWidget *sw;             /* scrolled window to carry preset treeview */
     GdkPixbuf *icon;
+    GError    *error = NULL;
 
     gint x;
     gint i;
@@ -1588,7 +1589,8 @@ void gui_create(Device *device)
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "gdigi");
 
-    icon = gdk_pixbuf_new_from_inline(-1, gdigi_icon, FALSE, NULL);
+    icon = (GdkPixbuf *) g_resource_lookup_data(gdigi_get_resource() , "/org/gdigi/icons/knob.png", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+
     gtk_window_set_icon(GTK_WINDOW(window), icon);
 
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
