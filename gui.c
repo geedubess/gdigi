@@ -15,6 +15,8 @@
  */
 
 #include <gtk/gtk.h>
+#include <glib.h>
+#include <glib/gi18n.h>
 #include <glib-object.h>
 #include <string.h>
 #include <alsa/asoundlib.h>
@@ -1094,8 +1096,8 @@ static void show_store_preset_window(GtkWidget *window, gchar *default_name)
     dialog = gtk_dialog_new_with_buttons("Store preset",
                                          GTK_WINDOW(window),
                                          GTK_DIALOG_DESTROY_WITH_PARENT,
-                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                         GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
+                                         _("_OK"), GTK_RESPONSE_ACCEPT,
+                                         _("_Cancel"), GTK_RESPONSE_CANCEL,
                                          NULL);
 
     vbox = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -1261,8 +1263,8 @@ static void action_open_preset_cb(GtkAction *action)
 
     dialog = gtk_file_chooser_dialog_new("Open Preset", GTK_WINDOW(window),
                                          GTK_FILE_CHOOSER_ACTION_OPEN,
-                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                         GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+                                         _("_OK"), GTK_RESPONSE_ACCEPT,
+                                         _("_Cancel"), GTK_RESPONSE_CANCEL,
                                          NULL);
 
     GtkFileFilter *filter;
@@ -1399,8 +1401,8 @@ static void action_save_preset_cb(GtkAction *action)
 
     dialog = gtk_file_chooser_dialog_new("Save Preset", GTK_WINDOW(window),
                                          GTK_FILE_CHOOSER_ACTION_SAVE,
-                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                         GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+                                         _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                         _("_Save"), GTK_RESPONSE_ACCEPT,
                                          NULL);
 
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -1468,13 +1470,13 @@ static void action_quit_cb(GtkAction *action)
 
 static GtkActionEntry entries[] = {
     {"File", NULL, "_File"},
-    {"Quit", GTK_STOCK_QUIT, "_Quit", "<control>Q", "Quit", G_CALLBACK(action_quit_cb)},
+    {"Quit", "application-exit", "_Quit", "<control>Q", "Quit", G_CALLBACK(action_quit_cb)},
     {"Preset", NULL, "_Preset"},
     {"Store", NULL, "_Store Preset to Device", "<control>D", "Store Preset to Device", G_CALLBACK(action_store_cb)},
-    {"Load", GTK_STOCK_OPEN, "_Load Preset from File", "<control>O", "Load Preset from File", G_CALLBACK(action_open_preset_cb)},
-    {"Save", GTK_STOCK_SAVE, "_Save Preset to File", "<control>S", "Save Preset to File", G_CALLBACK(action_save_preset_cb)},
+    {"Load", "document-open", "_Load Preset from File", "<control>O", "Load Preset from File", G_CALLBACK(action_open_preset_cb)},
+    {"Save", "document-save", "_Save Preset to File", "<control>S", "Save Preset to File", G_CALLBACK(action_save_preset_cb)},
     {"Help", NULL, "_Help"},
-    {"About", GTK_STOCK_ABOUT, "_About", "<control>A", "About", G_CALLBACK(action_show_about_dialog_cb)},
+    {"About", "help-about", "_About", "<control>A", "About", G_CALLBACK(action_show_about_dialog_cb)},
 };
 static guint n_entries = G_N_ELEMENTS(entries);
 
@@ -1679,8 +1681,8 @@ gboolean unsupported_device_dialog(Device **device)
 
     dialog = gtk_dialog_new_with_buttons("Unsupported device",
                                          NULL, GTK_DIALOG_MODAL,
-                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                         GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
+                                         _("_OK"), GTK_RESPONSE_ACCEPT,
+                                         _("_Cancel"), GTK_RESPONSE_CANCEL,
                                          NULL);
 
     vbox = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
@@ -1732,8 +1734,8 @@ gint select_device_dialog (GList *devices)
 
     dialog = gtk_dialog_new_with_buttons("Select Digitech device",
                                          NULL, GTK_DIALOG_MODAL,
-                                         GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-                                         GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
+                                         _("_OK"), GTK_RESPONSE_ACCEPT,
+                                         _("_Cancel"), GTK_RESPONSE_CANCEL,
                                          NULL);
 
     vbox = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
