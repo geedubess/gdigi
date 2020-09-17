@@ -648,8 +648,9 @@ gtk_knob_motion_notify(GtkWidget *widget, GdkEventMotion *event) {
         window = gtk_widget_get_window(widget);
         if (event->is_hint || (event->window != window)) {
             GdkModifierType mods;
-            GdkDeviceManager *device_manager = gdk_display_get_device_manager(gdk_window_get_display(window));
-            GdkDevice *pointer = gdk_device_manager_get_client_pointer(device_manager);
+            GdkDisplay* display = gdk_display_get_default();
+            GdkSeat* seat = gdk_display_get_default_seat(display);
+            GdkDevice* pointer = gdk_seat_get_pointer(seat);
 
             gdk_window_get_device_position(window, pointer, &x, &y, &mods);
             if (mods & GDK_BUTTON1_MASK) {
