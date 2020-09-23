@@ -238,6 +238,7 @@ format_ipv (guint id, guint pos, guint val)
     return buf;
 }
 
+#ifdef UNUSED_FUNCS
 /**
  *  Registers an error quark for gdigi if necessary.
  *
@@ -253,6 +254,7 @@ static GQuark gdigi_error_quark()
 
     return quark;
 }
+#endif /* UNUSED_FUNCS */
 
 /**
  *  \param array data to calculate checksum
@@ -1227,6 +1229,7 @@ GList *get_current_preset()
     return get_message_list(RECEIVE_PRESET_START);
 }
 
+#ifdef UNUSED_FUNCS
 /**
  *  Creates backup file.
  *
@@ -1309,7 +1312,9 @@ static gboolean create_backup_file(GFile *file, GError **error)
     g_object_unref(output);
     return !val;
 }
+#endif /* UNUSED_FUNCS */
 
+#ifdef UNUSED_FUNCS
 /**
  *  Restores backup file.
  *
@@ -1369,6 +1374,7 @@ static gboolean restore_backup_file(const gchar *filename, GError **error)
     g_free(data);
     return FALSE;
 }
+#endif /* UNUSED_FUNCS */
 
 /**
  *  \param device_id Variable to hold device ID
@@ -1399,6 +1405,7 @@ static gboolean request_who_am_i(unsigned char *device_id, unsigned char *family
     return FALSE;
 }
 
+#ifdef UNUSED_FUNCS
 static void request_device_configuration()
 {
     gint os_major, os_minor;
@@ -1435,6 +1442,7 @@ static void request_device_configuration()
         }
     }
 }
+#endif /* UNUSED_FUNCS */
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
