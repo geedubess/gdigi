@@ -24,6 +24,8 @@
 #include "gdigi_xml.h"
 #include "gui.h"
 
+extern int gui_init(void *device);
+
 /*
  * These initial values are used when initiating communication
  * with the device; the returned values are stored here to be
@@ -1487,6 +1489,14 @@ static gint get_digitech_devices(GList **devices)
     return number;
 }
 
+void device_gui_enable(void) {
+    set_option(GUI_MODE_ON_OFF, GLOBAL_POSITION, 1);
+}
+
+void device_gui_disable(void) {
+    set_option(GUI_MODE_ON_OFF, GLOBAL_POSITION, 0);
+}
+
 int main(int argc, char *argv[]) {
     GError *error = NULL;
     GOptionContext *context;
@@ -1599,6 +1609,8 @@ int main(int argc, char *argv[]) {
             }
 
             if (device != NULL) {
+                gui_init(device);
+#if 0
                 /* enable GUI mode */
                 set_option(GUI_MODE_ON_OFF, GLOBAL_POSITION, 1);
 
@@ -1608,6 +1620,7 @@ int main(int argc, char *argv[]) {
 
                 /* disable GUI mode */
                 set_option(GUI_MODE_ON_OFF, GLOBAL_POSITION, 0);
+#endif
             }
         }
     }

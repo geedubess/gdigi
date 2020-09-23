@@ -4,7 +4,7 @@ EXTRA_LDFLAGS ?=
 CFLAGS := $(shell pkg-config --cflags glib-2.0 gio-2.0 gtk+-3.0 libxml-2.0) -Wall -g -ansi -std=c99 $(EXTRA_CFLAGS)
 LDFLAGS = $(EXTRA_LDFLAGS) -Wl,--as-needed
 LDADD := $(shell pkg-config --libs glib-2.0 gio-2.0 gtk+-3.0 gthread-2.0 alsa libxml-2.0) -lexpat -lm
-OBJECTS = gdigi.o gui.o effects.o preset.o gtkknob.o preset_xml.o resources.o
+OBJECTS = gdigi.o gui.o effects.o preset.o gtkknob.o preset_xml.o resources.o gtkapp.o
 DEPFILES = $(foreach m,$(OBJECTS:.o=),.$(m).m)
 
 .PHONY : clean distclean all
@@ -19,11 +19,14 @@ all: gdigi
 gdigi: $(OBJECTS)
 	$(CC) $(LDFLAGS) -o $@ $+ $(LDADD)
 
-resources.c: resources.xml images/gdigi.png images/icon.png images/knob.png
-	glib-compile-resources --generate-source --c-name gdigi resources.xml
+resources.c: resources.gresource.xml images/gdigi.png images/icon.png images/knob.png menus.ui
+	glib-compile-resources --generate-source --c-name gdigi resources.gresource.xml --target=$@
+
+resources.h: resources.gresource.xml images/gdigi.png images/icon.png images/knob.png menus.ui
+	glib-compile-resources --generate-header --c-name gdigi resources.gresource.xml --target=$@
 
 clean:
-	rm -f *.o
+	rm -f *.o resources.c resources.h
 
 distclean : clean
 	rm -f .*.m

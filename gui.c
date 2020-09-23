@@ -26,8 +26,8 @@
 #include "preset.h"
 #include "gtkknob.h"
 #include "gdigi_xml.h"
-
-extern GResource *gdigi_get_resource (void);
+#include "resources.h"
+#include "gdigi_gtk.h"
 
 static gchar* MessageID_names[] = {
     [REQUEST_WHO_AM_I] = "REQUEST_WHO_AM_I",
@@ -90,7 +90,6 @@ get_message_name(MessageID msgid)
     }
 
     return "Unknown";
-
 }
 
 typedef struct {
@@ -106,6 +105,7 @@ static GtkKnobAnim *knob_anim = NULL; /* animation used by knobs */
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 static GTree *widget_tree = NULL;     /**< this tree contains lists containing WidgetTreeElem data elements */
 static gboolean allow_send = FALSE;   /**< if FALSE GUI parameter changes won't be sent to device */
+
 
 /**
  *  \param parent transient parent, or NULL for none
@@ -1142,7 +1142,9 @@ static void show_store_preset_window(GtkWidget *window, gchar *default_name)
  *
  *  Shows store preset window.
  **/
-static void action_store_cb(GtkAction *action)
+static void action_store_cb(GSimpleAction *action,
+                            GVariant      *parameter,
+                            gpointer       app)
 {
     GtkWidget *window = g_object_get_data(G_OBJECT(action), "window");
     show_store_preset_window(window, NULL);
@@ -1153,7 +1155,9 @@ static void action_store_cb(GtkAction *action)
  *
  *  Shows about dialog.
  **/
-static void action_show_about_dialog_cb(GtkAction *action)
+static void action_show_about_dialog_cb(GSimpleAction *action,
+                                        GVariant      *parameter,
+                                        gpointer       app)
 {
     static const gchar * const authors[] = {
         "Tomasz Moń <desowin@gmail.com>",
@@ -1252,7 +1256,9 @@ get_preset_filesuffix (void)
  *  Shows file chooser dialog.
  *  If user opens valid preset file, the preset gets applied to edit buffer and store preset window is shown.
  **/
-static void action_open_preset_cb(GtkAction *action)
+static void action_open_preset_cb(GSimpleAction *action,
+                                  GVariant      *parameter,
+                                  gpointer       app)
 {
     static GtkWidget *dialog = NULL;
 
@@ -1390,7 +1396,9 @@ static void action_open_preset_cb(GtkAction *action)
  *  If the user chooses a file, the preset in the edit buffer is
  *  written out in XML format.
  **/
-static void action_save_preset_cb(GtkAction *action)
+static void action_save_preset_cb(GSimpleAction *action,
+                                  GVariant      *parameter,
+                                  gpointer       app)
 {
     static GtkWidget *dialog = NULL;
 
@@ -1458,65 +1466,34 @@ static void widget_tree_elem_free(GList *list)
  *
  *  Destroys action object "window" data, then stops gtk main loop.
  **/
-static void action_quit_cb(GtkAction *action)
+static void action_quit_cb (GSimpleAction *action,
+			    GVariant      *parameter,
+			    gpointer       app)
 {
+#if 0
     GtkWidget *window = g_object_get_data(G_OBJECT(action), "window");
 
     gtk_widget_destroy(window);
     gtk_main_quit();
+#endif
+  g_application_quit (G_APPLICATION (app));
 }
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-
-static GtkActionEntry entries[] = {
-    {"File", NULL, "_File"},
-    {"Quit", "application-exit", "_Quit", "<control>Q", "Quit", G_CALLBACK(action_quit_cb)},
-    {"Preset", NULL, "_Preset"},
-    {"Store", NULL, "_Store Preset to Device", "<control>D", "Store Preset to Device", G_CALLBACK(action_store_cb)},
-    {"Load", "document-open", "_Load Preset from File", "<control>O", "Load Preset from File", G_CALLBACK(action_open_preset_cb)},
-    {"Save", "document-save", "_Save Preset to File", "<control>S", "Save Preset to File", G_CALLBACK(action_save_preset_cb)},
-    {"Help", NULL, "_Help"},
-    {"About", "help-about", "_About", "<control>A", "About", G_CALLBACK(action_show_about_dialog_cb)},
+static GActionEntry app_entries[] =
+{
+  { "quit", action_quit_cb, NULL, NULL, NULL }
 };
-static guint n_entries = G_N_ELEMENTS(entries);
 
-static const gchar *menu_info =
-"<ui>"
-" <menubar name='MenuBar'>"
-"  <menu action='File'>"
-"   <separator/>"
-"   <menuitem action='Quit'/>"
-"  </menu>"
-"  <menu action='Preset'>"
-"   <menuitem action='Store'/>"
-"   <separator/>"
-"   <menuitem action='Load'/>"
-"   <menuitem action='Save'/>"
-"  </menu>"
-"  <menu action='Help'>"
-"   <menuitem action='About'/>"
-"  </menu>"
-" </menubar>"
-"</ui>";
-
+static GActionEntry win_entries[] =
+{
+  { "store", action_store_cb, NULL, NULL, NULL },
+  { "load",  action_open_preset_cb, NULL, NULL, NULL },
+  { "save",  action_save_preset_cb, NULL, NULL, NULL },
+  { "about", action_show_about_dialog_cb, NULL, NULL, NULL }
+};
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-/**
- *  \param ui GtkUIManager to lookup actions
- *  \param path path to action
- *  \param window toplevel window
- *
- *  Sets action object "window" data to toplevel window.
- **/
-static void add_action_data(GtkUIManager *ui, const gchar *path, GtkWidget *window)
-{
-    GtkAction *action;
-
-    action = gtk_ui_manager_get_action(ui, path);
-    g_return_if_fail(action != NULL);
-
-    g_object_set_data(G_OBJECT(action), "window", window);
-}
 
 /**
  *  \param window toplevel window
@@ -1524,36 +1501,36 @@ static void add_action_data(GtkUIManager *ui, const gchar *path, GtkWidget *wind
  *
  *  Creates menubar (adds accel group to toplevel window as well) and packs it into vbox.
  **/
-static void add_menubar(GtkWidget *window, GtkWidget *vbox)
+void add_menubar(GtkApplication *app)
 {
-    GtkUIManager *ui;
-    GtkActionGroup *actions;
-    GError *error = NULL;
+    GtkBuilder *builder;
+    GMenuModel *app_menu;
+    GMenuModel *menubar;
 
-    actions = gtk_action_group_new("Actions");
-    gtk_action_group_add_actions(actions, entries, n_entries, NULL);
+    struct {
+      const gchar *action_and_target;
+      const gchar *accelerators[2];
+    } accels[] = {
+          { "app.quit", { "<Primary>q", NULL } },
+          { "win.load", { "<Primary>o", NULL } },
+          { "win.save", { "<Primary>s", NULL } }
+  };
 
-    ui = gtk_ui_manager_new();
-    gtk_ui_manager_insert_action_group(ui, actions, 0);
-    g_object_unref(actions);
-    gtk_window_add_accel_group(GTK_WINDOW(window), gtk_ui_manager_get_accel_group(ui));
+    int i;
+    for (i = 0; i < G_N_ELEMENTS (accels); i++)
+        gtk_application_set_accels_for_action (app, accels[i].action_and_target,
+                                               accels[i].accelerators);
 
-    if (!gtk_ui_manager_add_ui_from_string(ui, menu_info, -1, &error)) {
-        g_warning("building menus failed: %s", error->message);
-        g_error_free(error);
-        error = NULL;
-    }
-    gtk_box_pack_start(GTK_BOX(vbox),
-                       gtk_ui_manager_get_widget(ui, "/MenuBar"),
-                       FALSE, FALSE, 0);
+    g_action_map_add_action_entries (G_ACTION_MAP (app),
+                                   app_entries, G_N_ELEMENTS (app_entries),
+                                   app);
 
-    add_action_data(ui, "/MenuBar/File/Quit", window);
-    add_action_data(ui, "/MenuBar/Preset/Store", window);
-    add_action_data(ui, "/MenuBar/Preset/Save", window);
-    add_action_data(ui, "/MenuBar/Preset/Load", window);
-    add_action_data(ui, "/MenuBar/Help/About", window);
-
-    g_object_unref(ui);
+    builder = gtk_builder_new_from_resource ("/org/gtk/menus.ui");
+    app_menu = G_MENU_MODEL (gtk_builder_get_object (builder, "app-menu"));
+    menubar  = G_MENU_MODEL (gtk_builder_get_object (builder, "menubar"));
+    gtk_application_set_app_menu (GTK_APPLICATION (app), app_menu);
+    gtk_application_set_menubar  (GTK_APPLICATION (app), menubar);
+    g_object_unref (builder);
 }
 
 static gint widget_tree_key_compare_func(gconstpointer a, gconstpointer b, gpointer data)
@@ -1574,9 +1551,8 @@ static gint widget_tree_key_compare_func(gconstpointer a, gconstpointer b, gpoin
 /**
  *  Creates main window.
  **/
-void gui_create(Device *device)
+void gui_create(GtkApplication *app, Device *device)
 {
-    GtkWidget *window;
     GtkWidget *vbox;
     GtkWidget *hbox;
     GtkWidget *widget;
@@ -1584,21 +1560,26 @@ void gui_create(Device *device)
     GtkWidget *sw;             /* scrolled window to carry preset treeview */
     GdkPixbuf *icon;
     GError    *error = NULL;
+    GdigiAppWindow *window;
 
     gint x;
     gint i;
 
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "gdigi");
 
-    icon = (GdkPixbuf *) g_resource_lookup_data(gdigi_get_resource() , "/org/gdigi/icons/knob.png", G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+    window = gdigi_app_window_new (GDIGI_APP (app));
+
+    g_action_map_add_action_entries (G_ACTION_MAP (window),
+                                   win_entries, G_N_ELEMENTS (win_entries),
+                                   app);
+
+    icon = gdk_pixbuf_new_from_resource("/org/gdigi/images/knob.png", &error);
+    g_assert_no_error (error);
 
     gtk_window_set_icon(GTK_WINDOW(window), icon);
+    g_object_unref(icon);
 
     vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(window), vbox);
-
-    add_menubar(window, vbox);
 
     hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add(GTK_CONTAINER(vbox), hbox);
@@ -1640,7 +1621,7 @@ void gui_create(Device *device)
     }
 
     apply_current_preset();
-    gtk_widget_show_all(window);
+    gtk_widget_show_all((GtkWidget *)window); // TODO: is this cast okay?
 
     g_signal_connect(G_OBJECT(window), "delete_event", G_CALLBACK(gtk_main_quit), NULL);
 
