@@ -44,6 +44,7 @@ static GQueue *message_queue = NULL;
 static GMutex *message_queue_mutex = NULL;
 static GMutex _message_queue_mutex;
 static GCond *message_queue_cond = NULL;
+static GCond _message_queue_cond;
 
 static guint DebugFlags;
 
@@ -1560,7 +1561,8 @@ int main(int argc, char *argv[]) {
         message_queue = g_queue_new();
         message_queue_mutex = &_message_queue_mutex;
         g_mutex_init(message_queue_mutex);
-        message_queue_cond = g_cond_new();
+        message_queue_cond = &_message_queue_cond;
+        g_cond_init(message_queue_cond);
         read_thread = g_thread_create((GThreadFunc)read_data_thread,
                                       &stop_read_thread,
                                       TRUE, NULL);
