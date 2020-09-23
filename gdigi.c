@@ -740,8 +740,12 @@ GString *get_message_by_id(MessageID id)
             }
         }
 
-        if (found == FALSE)
-            g_cond_wait(message_queue_cond, message_queue_mutex);
+        if (found == FALSE) {
+            gint64 end_time = g_get_monotonic_time () + 5 * G_TIME_SPAN_SECOND;
+            if (!g_cond_wait_until(message_queue_cond, message_queue_mutex, end_time))
+                printf("timed out waiting for %s - retrying indefinitely\n",
+                        get_message_name(id));
+        }
 
     } while (found == FALSE);
     g_mutex_unlock(message_queue_mutex);
