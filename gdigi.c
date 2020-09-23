@@ -42,6 +42,7 @@ static char *device_port = NULL;
 
 static GQueue *message_queue = NULL;
 static GMutex *message_queue_mutex = NULL;
+static GMutex _message_queue_mutex;
 static GCond *message_queue_cond = NULL;
 
 static guint DebugFlags;
@@ -1549,7 +1550,8 @@ int main(int argc, char *argv[]) {
         show_error_message(NULL, "Failed to open MIDI device");
     } else {
         message_queue = g_queue_new();
-        message_queue_mutex = g_mutex_new();
+        message_queue_mutex = &_message_queue_mutex;
+        g_mutex_init(message_queue_mutex);
         message_queue_cond = g_cond_new();
         read_thread = g_thread_create((GThreadFunc)read_data_thread,
                                       &stop_read_thread,
@@ -1628,10 +1630,6 @@ int main(int argc, char *argv[]) {
     if (read_thread != NULL) {
         stop_read_thread = TRUE;
         g_thread_join(read_thread);
-    }
-
-    if (message_queue_mutex != NULL) {
-        g_mutex_free(message_queue_mutex);
     }
 
     if (message_queue != NULL && g_queue_get_length(message_queue)) {
