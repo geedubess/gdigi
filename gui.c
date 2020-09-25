@@ -1219,6 +1219,7 @@ static void action_show_about_dialog_cb(GSimpleAction *action,
         "Ahmed Toulan <thelinuxer@gmail.com>",
         "Tim LaBerge <tlaberge@visi.com>",
         "Mauro Carvalho Chehab <maurochehab@gmail.com>",
+        "Greg Simpson <gdigi@sweet.com>",
         NULL
     };
 
