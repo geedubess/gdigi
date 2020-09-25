@@ -29,6 +29,8 @@
 #include "gtkknob.h"
 #include "knob.h"
 
+#define ASSERT_MAIN_THREAD() g_assert(g_thread_self()->func == 0)
+
 #ifndef M_PI
 # define M_PI		3.14159265358979323846	/* pi */
 #endif
@@ -79,7 +81,8 @@ static GtkWidgetClass *parent_class = NULL;
  *
  *****************************************************************************/
 GType
-gtk_knob_get_type(void) {
+gtk_knob_get_type(void)
+{
     static GType knob_type = 0;
 
     if (!knob_type) {
@@ -107,7 +110,8 @@ gtk_knob_get_type(void) {
  *
  *****************************************************************************/
 static void
-gtk_knob_class_init (GtkKnobClass *klass) {
+gtk_knob_class_init (GtkKnobClass *klass)
+{
     GtkWidgetClass *widget_class;
 
     widget_class = (GtkWidgetClass*) klass;
@@ -138,7 +142,10 @@ gtk_knob_class_init (GtkKnobClass *klass) {
  *
  *****************************************************************************/
 static void
-gtk_knob_init (GtkKnob *knob) {
+gtk_knob_init (GtkKnob *knob)
+{
+    ASSERT_MAIN_THREAD();
+
     knob->policy     = GTK_KNOB_UPDATE_CONTINUOUS;
     knob->state      = STATE_IDLE;
     knob->saved_x    = 0;
@@ -164,8 +171,11 @@ gtk_knob_init (GtkKnob *knob) {
  *
  *****************************************************************************/
 GtkWidget *
-gtk_knob_new(GtkAdjustment *adjustment, GtkKnobAnim *anim) {
+gtk_knob_new(GtkAdjustment *adjustment, GtkKnobAnim *anim)
+{
     GtkKnob *knob;
+
+    ASSERT_MAIN_THREAD();
 
     g_return_val_if_fail (anim != NULL, NULL);
 
@@ -190,7 +200,8 @@ gtk_knob_new(GtkAdjustment *adjustment, GtkKnobAnim *anim) {
  *
  *****************************************************************************/
 static void
-gtk_knob_destroy(GtkWidget *object) {
+gtk_knob_destroy(GtkWidget *object)
+{
     GtkKnob *knob;
 
     g_return_if_fail (object != NULL);
@@ -218,8 +229,8 @@ gtk_knob_destroy(GtkWidget *object) {
  *
  *****************************************************************************/
 GtkAdjustment*
-gtk_knob_get_adjustment(GtkKnob *knob) {
-
+gtk_knob_get_adjustment(GtkKnob *knob)
+{
     g_return_val_if_fail (knob != NULL, NULL);
     g_return_val_if_fail (GTK_IS_KNOB (knob), NULL);
 
@@ -233,8 +244,8 @@ gtk_knob_get_adjustment(GtkKnob *knob) {
  *
  *****************************************************************************/
 void
-gtk_knob_set_update_policy(GtkKnob *knob, GtkKnobUpdateType policy) {
-
+gtk_knob_set_update_policy(GtkKnob *knob, GtkKnobUpdateType policy)
+{
     g_return_if_fail (knob != NULL);
     g_return_if_fail (GTK_IS_KNOB (knob));
 
@@ -248,8 +259,8 @@ gtk_knob_set_update_policy(GtkKnob *knob, GtkKnobUpdateType policy) {
  *
  *****************************************************************************/
 void
-gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adjustment) {
-
+gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adjustment)
+{
     g_return_if_fail (knob != NULL);
     g_return_if_fail (GTK_IS_KNOB (knob));
 
@@ -287,7 +298,10 @@ gtk_knob_set_adjustment(GtkKnob *knob, GtkAdjustment *adjustment) {
  *
  *****************************************************************************/
 static void
-gtk_knob_realize(GtkWidget *widget) {
+gtk_knob_realize(GtkWidget *widget)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
     GdkWindow *window;
     GdkWindowAttr attributes;
@@ -366,6 +380,8 @@ gtk_knob_get_preferred_width(GtkWidget *widget,
                              gint *minimum_width,
                              gint *natural_width)
 {
+    ASSERT_MAIN_THREAD();
+
     g_return_if_fail (widget != NULL);
     g_return_if_fail (GTK_IS_KNOB (widget));
 
@@ -377,6 +393,8 @@ gtk_knob_get_preferred_height(GtkWidget *widget,
                               gint *minimum_height,
                               gint *natural_height)
 {
+    ASSERT_MAIN_THREAD();
+
     g_return_if_fail (widget != NULL);
     g_return_if_fail (GTK_IS_KNOB (widget));
 
@@ -390,7 +408,10 @@ gtk_knob_get_preferred_height(GtkWidget *widget,
  *
  *****************************************************************************/
 static void
-gtk_knob_size_allocate (GtkWidget *widget, GtkAllocation *allocation) {
+gtk_knob_size_allocate (GtkWidget *widget, GtkAllocation *allocation)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
 
     g_return_if_fail (widget != NULL);
@@ -414,7 +435,10 @@ gtk_knob_size_allocate (GtkWidget *widget, GtkAllocation *allocation) {
  *
  *****************************************************************************/
 static gboolean
-gtk_knob_draw(GtkWidget *widget, cairo_t *cr) {
+gtk_knob_draw(GtkWidget *widget, cairo_t *cr)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
     gdouble dx, dy;
     gint frames;
@@ -466,7 +490,10 @@ gtk_knob_draw(GtkWidget *widget, cairo_t *cr) {
  *
  *****************************************************************************/
 static gint
-gtk_knob_scroll(GtkWidget *widget, GdkEventScroll *event) {
+gtk_knob_scroll(GtkWidget *widget, GdkEventScroll *event)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
 
     g_return_val_if_fail (widget != NULL, FALSE);
@@ -503,7 +530,10 @@ gtk_knob_scroll(GtkWidget *widget, GdkEventScroll *event) {
  *
  *****************************************************************************/
 static gint
-gtk_knob_button_press(GtkWidget *widget, GdkEventButton *event) {
+gtk_knob_button_press(GtkWidget *widget, GdkEventButton *event)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
 
     g_return_val_if_fail (widget != NULL, FALSE);
@@ -545,7 +575,10 @@ gtk_knob_button_press(GtkWidget *widget, GdkEventButton *event) {
  *
  *****************************************************************************/
 static gint
-gtk_knob_button_release(GtkWidget *widget, GdkEventButton *event) {
+gtk_knob_button_release(GtkWidget *widget, GdkEventButton *event)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
 
     g_return_val_if_fail (widget != NULL, FALSE);
@@ -583,6 +616,8 @@ gtk_knob_button_release(GtkWidget *widget, GdkEventButton *event) {
 
 static gint gtk_knob_key_press(GtkWidget *widget, GdkEventKey *event)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
 
     g_return_val_if_fail (widget != NULL, FALSE);
@@ -624,7 +659,10 @@ static gint gtk_knob_key_press(GtkWidget *widget, GdkEventKey *event)
  *
  *****************************************************************************/
 static gint
-gtk_knob_motion_notify(GtkWidget *widget, GdkEventMotion *event) {
+gtk_knob_motion_notify(GtkWidget *widget, GdkEventMotion *event)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
     GdkWindow *window;
     gint x, y;
@@ -675,7 +713,9 @@ gtk_knob_motion_notify(GtkWidget *widget, GdkEventMotion *event) {
  *
  *****************************************************************************/
 static gint
-gtk_knob_timer(GtkKnob *knob) {
+gtk_knob_timer(GtkKnob *knob)
+{
+    ASSERT_MAIN_THREAD();
 
     g_return_val_if_fail (knob != NULL, FALSE);
     g_return_val_if_fail (GTK_IS_KNOB (knob), FALSE);
@@ -696,7 +736,10 @@ gtk_knob_timer(GtkKnob *knob) {
  *
  *****************************************************************************/
 static void
-gtk_knob_update_mouse_update(GtkKnob *knob) {
+gtk_knob_update_mouse_update(GtkKnob *knob)
+{
+    ASSERT_MAIN_THREAD();
+
     g_return_if_fail(GTK_IS_ADJUSTMENT (knob->adjustment));
 
     if (knob->policy == GTK_KNOB_UPDATE_CONTINUOUS) {
@@ -723,7 +766,10 @@ gtk_knob_update_mouse_update(GtkKnob *knob) {
  *
  *****************************************************************************/
 static void
-gtk_knob_update_mouse(GtkKnob *knob, gint x, gint y, gboolean step) {
+gtk_knob_update_mouse(GtkKnob *knob, gint x, gint y, gboolean step)
+{
+    ASSERT_MAIN_THREAD();
+
     gdouble old_value, new_value, dv, dh;
     gdouble angle;
 
@@ -770,7 +816,10 @@ gtk_knob_update_mouse(GtkKnob *knob, gint x, gint y, gboolean step) {
  *
  *****************************************************************************/
 static void
-gtk_knob_update(GtkKnob *knob) {
+gtk_knob_update(GtkKnob *knob)
+{
+    ASSERT_MAIN_THREAD();
+
     gdouble new_value;
 
     g_return_if_fail (knob != NULL);
@@ -807,7 +856,10 @@ gtk_knob_update(GtkKnob *knob) {
  *
  *****************************************************************************/
 static void
-gtk_knob_adjustment_changed(GtkAdjustment *adjustment, gpointer data) {
+gtk_knob_adjustment_changed(GtkAdjustment *adjustment, gpointer data)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
 
     g_return_if_fail (adjustment != NULL);
@@ -834,7 +886,10 @@ gtk_knob_adjustment_changed(GtkAdjustment *adjustment, gpointer data) {
  *
  *****************************************************************************/
 static void
-gtk_knob_adjustment_value_changed (GtkAdjustment *adjustment, gpointer data) {
+gtk_knob_adjustment_value_changed (GtkAdjustment *adjustment, gpointer data)
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnob *knob;
 
     g_return_if_fail (adjustment != NULL);
@@ -855,7 +910,10 @@ gtk_knob_adjustment_value_changed (GtkAdjustment *adjustment, gpointer data) {
  *
  *****************************************************************************/
 void
-gtk_knob_set_animation (GtkKnob *knob, GtkKnobAnim *anim) {
+gtk_knob_set_animation (GtkKnob *knob, GtkKnobAnim *anim)
+{
+    ASSERT_MAIN_THREAD();
+
     g_return_if_fail (knob != NULL);
     g_return_if_fail (anim != NULL);
     g_return_if_fail (GTK_IS_KNOB (knob));
@@ -892,7 +950,10 @@ get_knob_image(void *closure, unsigned char *data, unsigned int length)
  *
  *****************************************************************************/
 GtkKnobAnim *
-gtk_knob_animation_new_from_inline() {
+gtk_knob_animation_new_from_inline()
+{
+    ASSERT_MAIN_THREAD();
+
     GtkKnobAnim *anim = g_new0 (GtkKnobAnim, 1);
     int offset = 0;
 
@@ -912,7 +973,8 @@ gtk_knob_animation_new_from_inline() {
  *
  *****************************************************************************/
 void
-gtk_knob_animation_free(GtkKnobAnim *anim) {
+gtk_knob_animation_free(GtkKnobAnim *anim)
+{
     g_return_if_fail (anim != NULL);
 
     if (anim->image)

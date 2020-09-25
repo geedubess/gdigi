@@ -426,6 +426,23 @@ MessageID get_message_id(GString *msg)
 
 static gboolean modifier_linkable_list_request_pending = FALSE;
 
+int receive_modifier_linkable_list(gpointer unused) {
+    create_modifier_group(EXP_POSITION, EXP_ASSIGN1);
+    create_modifier_group(LFO1_POSITION, LFO_TYPE);
+    create_modifier_group(LFO2_POSITION, LFO_TYPE);
+
+    create_modifier_group(LINK_POSITION_1, LINK_TO);
+    create_modifier_group(LINK_POSITION_2, LINK_TO);
+    create_modifier_group(LINK_POSITION_3, LINK_TO);
+    create_modifier_group(LINK_POSITION_4, LINK_TO);
+    create_modifier_group(LINK_POSITION_5, LINK_TO);
+    create_modifier_group(LINK_POSITION_6, LINK_TO);
+    create_modifier_group(LINK_POSITION_7, LINK_TO);
+    create_modifier_group(LINK_POSITION_8, LINK_TO);
+
+    return 0;
+}
+
 /* push a received message onto the received stack */
 void push_message(GString *msg)
 {
@@ -465,11 +482,8 @@ void push_message(GString *msg)
                 g_string_free(ipv, TRUE);
             }
 
-            GDK_THREADS_ENTER();
-            apply_setting_param_to_gui(param);
-            GDK_THREADS_LEAVE();
+            gdk_threads_add_idle(apply_setting_param_to_gui, (void *)param);
 
-            setting_param_free(param);
             g_string_free(msg, TRUE);
             return;
         }
@@ -481,9 +495,8 @@ void push_message(GString *msg)
             case NOTIFY_PRESET_MOVED:
                 if (str[11] == PRESETS_EDIT_BUFFER && str[12] == 0) {
 
-                    GDK_THREADS_ENTER();
-                    g_timeout_add(0, apply_current_preset_to_gui, NULL);
-                    GDK_THREADS_LEAVE();
+                    gdk_threads_add_idle(apply_current_preset_to_gui, NULL);
+
                     debug_msg(DEBUG_MSG2HOST,
                               "RECEIVE_DEVICE_NOTIFICATION: Loaded preset "
                               "%d from bank %d",
@@ -519,6 +532,7 @@ void push_message(GString *msg)
             }
             g_string_free(msg, TRUE);
             return;
+
         case RECEIVE_GLOBAL_PARAMETERS:
             unpack_message(msg);
             debug_msg_hex((unsigned char *)msg->str, msg->len);
@@ -536,11 +550,8 @@ void push_message(GString *msg)
                           param->id,
                           param->position, param->value, "XXX");
 
-                GDK_THREADS_ENTER();
-                apply_setting_param_to_gui(param);
-                GDK_THREADS_LEAVE();
+                gdk_threads_add_idle(apply_setting_param_to_gui, (void *)param);
 
-                setting_param_free(param);
             } while ( (x < msg->len) && n < tot);
 
             g_string_free(msg, TRUE);
@@ -559,22 +570,7 @@ void push_message(GString *msg)
 
             g_string_free(msg, TRUE);
 
-            GDK_THREADS_ENTER();
-
-            create_modifier_group(EXP_POSITION, EXP_ASSIGN1);
-            create_modifier_group(LFO1_POSITION, LFO_TYPE);
-            create_modifier_group(LFO2_POSITION, LFO_TYPE);
-
-            create_modifier_group(LINK_POSITION_1, LINK_TO);
-            create_modifier_group(LINK_POSITION_2, LINK_TO);
-            create_modifier_group(LINK_POSITION_3, LINK_TO);
-            create_modifier_group(LINK_POSITION_4, LINK_TO);
-            create_modifier_group(LINK_POSITION_5, LINK_TO);
-            create_modifier_group(LINK_POSITION_6, LINK_TO);
-            create_modifier_group(LINK_POSITION_7, LINK_TO);
-            create_modifier_group(LINK_POSITION_8, LINK_TO);
-
-            GDK_THREADS_LEAVE();
+            gdk_threads_add_idle(receive_modifier_linkable_list, NULL);
 
             return;
 
@@ -1517,9 +1513,6 @@ int main(int argc, char *argv[]) {
     static gboolean stop_read_thread = FALSE;
     GThread *read_thread = NULL;
 
-    g_thread_init(NULL);
-    gdk_threads_init();
-
     context = g_option_context_new(NULL);
     g_option_context_add_main_entries(context, options, NULL);
     g_option_context_add_group(context, gtk_get_option_group(TRUE));
@@ -1567,9 +1560,9 @@ int main(int argc, char *argv[]) {
         g_mutex_init(message_queue_mutex);
         message_queue_cond = &_message_queue_cond;
         g_cond_init(message_queue_cond);
-        read_thread = g_thread_create((GThreadFunc)read_data_thread,
-                                      &stop_read_thread,
-                                      TRUE, NULL);
+        read_thread = g_thread_new("read thread",
+                                    (GThreadFunc)read_data_thread,
+                                    &stop_read_thread);
 
         /*
          * ask for an id several times until it stops changing:

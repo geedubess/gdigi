@@ -115,6 +115,8 @@ static gboolean allow_send = FALSE;   /**< if FALSE GUI parameter changes won't 
  **/
 void show_error_message(GtkWidget *parent, gchar *message)
 {
+    ASSERT_MAIN_THREAD();
+
     g_return_if_fail(message != NULL);
 
     GtkWidget *msg = gtk_message_dialog_new(GTK_WINDOW(parent),
@@ -154,6 +156,8 @@ static gboolean check_value_range(gint value, EffectValues *values)
  **/
 static gboolean custom_value_input_cb(GtkSpinButton *spin, gdouble *new_val, EffectValues *values)
 {
+    ASSERT_MAIN_THREAD();
+
     gchar *text = g_strdup(gtk_entry_get_text(GTK_ENTRY(spin)));
     gchar *err = NULL;
     gdouble value;
@@ -242,6 +246,8 @@ static gboolean custom_value_input_cb(GtkSpinButton *spin, gdouble *new_val, Eff
  **/
 static gboolean custom_value_output_cb(GtkSpinButton *spin, EffectValues *values)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkAdjustment *adj;
     gdouble value;
     gchar *text = NULL;
@@ -307,6 +313,8 @@ static gboolean custom_value_output_cb(GtkSpinButton *spin, EffectValues *values
  **/
 void value_changed_option_cb(GtkAdjustment *adj, EffectSettings *setting)
 {
+    ASSERT_MAIN_THREAD();
+
     g_return_if_fail(setting != NULL);
 
     if (allow_send) {
@@ -324,6 +332,8 @@ void value_changed_option_cb(GtkAdjustment *adj, EffectSettings *setting)
  **/
 void toggled_cb(GtkToggleButton *button, Effect *effect)
 {
+    ASSERT_MAIN_THREAD();
+
     g_return_if_fail(effect != NULL);
 
     if (allow_send) {
@@ -378,6 +388,8 @@ static WidgetTreeElem *widget_tree_add(GObject *widget, gint id, gint position, 
  **/
 static void apply_widget_setting(WidgetTreeElem *el, SettingParam *param)
 {
+    ASSERT_MAIN_THREAD();
+
     if (el->value == -1) {
         if (GTK_IS_TOGGLE_BUTTON(el->widget))
             gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(el->widget), (param->value == 0) ? FALSE : TRUE);
@@ -393,18 +405,26 @@ static void apply_widget_setting(WidgetTreeElem *el, SettingParam *param)
 /**
  *  \param param SettingParam to apply to GUI
  *
- *  Applies SettingParam to GUI
+ *  Applies SettingParam to GUI and frees param
  **/
-void apply_setting_param_to_gui(SettingParam *param)
+int apply_setting_param_to_gui(void *arg)
 {
+    ASSERT_MAIN_THREAD();
+
+    SettingParam *param = (SettingParam *) arg;
     gpointer key;
-    g_return_if_fail(param != NULL);
+
+    g_return_val_if_fail(param != NULL, FALSE);
 
     allow_send = FALSE;
     key = GINT_TO_POINTER((param->position << 16) | param->id);
     GList *list = g_tree_lookup(widget_tree, key);
     g_list_foreach(list, (GFunc)apply_widget_setting, param);
     allow_send = TRUE;
+
+    setting_param_free(param);
+
+    return FALSE;
 }
 
 /**
@@ -515,6 +535,8 @@ void modifier_settings_exp_free(EffectSettings *settings)
  **/
 GtkWidget *create_grid(EffectSettings *settings, gint amt, GHashTable *widget_table)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *grid, *label, *widget, *knob;
     GtkAdjustment *adj;
     int x;
@@ -582,6 +604,8 @@ GtkWidget *create_grid(EffectSettings *settings, gint amt, GHashTable *widget_ta
  **/
 GtkWidget *create_on_off_button(Effect *effect)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *button;
     if (effect->label == NULL)
         button = gtk_check_button_new();
@@ -607,6 +631,8 @@ typedef struct {
  **/
 void effect_settings_group_free(EffectSettingsGroup *group)
 {
+    ASSERT_MAIN_THREAD();
+
     if (group->child != NULL) {
         /* destroy widget without parent */
         if (gtk_widget_get_parent(group->child) == NULL) {
@@ -627,6 +653,8 @@ void effect_settings_group_free(EffectSettingsGroup *group)
  **/
 void combo_box_changed_cb(GtkComboBox *widget, gpointer data)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *child;
     GtkWidget *vbox;
     EffectSettingsGroup *settings = NULL;
@@ -681,6 +709,8 @@ void combo_box_changed_cb(GtkComboBox *widget, gpointer data)
  **/
 GtkWidget *create_widget_container(EffectGroup *group, gint amt, gint id, gint position)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *vbox;
     GtkWidget *widget;
     GtkWidget *combo_box = NULL;
@@ -757,6 +787,8 @@ GtkWidget *create_widget_container(EffectGroup *group, gint amt, gint id, gint p
  */
 static void update_modifier_vbox(GtkWidget *vbox, GObject *combo_box, gint id, gint position)
 {
+    ASSERT_MAIN_THREAD();
+
     gint x;
     EffectSettingsGroup *settings = NULL;
     EffectGroup *group = get_modifier_group();
@@ -801,6 +833,8 @@ static void update_modifier_vbox(GtkWidget *vbox, GObject *combo_box, gint id, g
 
 static void clean_modifier_combo_box(GObject *combo_box, GList *list)
 {
+    ASSERT_MAIN_THREAD();
+
     EffectSettingsGroup *settings = NULL;
     WidgetTreeElem *el;
     gchar *name;
@@ -850,7 +884,6 @@ static void clean_modifier_combo_box(GObject *combo_box, GList *list)
 void
 create_modifier_group (guint pos, guint id)
 {
-    
     GtkWidget *vbox;
     gpointer key;
     WidgetTreeElem *el;
@@ -909,6 +942,8 @@ create_modifier_group (guint pos, guint id)
  **/
 GtkWidget *create_vbox(Effect *widgets, gint amt, gchar *label)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *vbox;
     GtkWidget *widget;
     GtkWidget *grid;
@@ -979,6 +1014,8 @@ enum {
  *  Sets active device preset to preset selected by user.
  **/
 void row_activate_cb(GtkTreeView *treeview, GtkTreePath *path, GtkTreeViewColumn *column, GtkTreeModel *model) {
+    ASSERT_MAIN_THREAD();
+
     GtkTreeIter iter;
     gint id;
     gint bank;
@@ -1001,6 +1038,8 @@ void row_activate_cb(GtkTreeView *treeview, GtkTreePath *path, GtkTreeViewColumn
  **/
 static void fill_store_with_presets(GtkTreeStore *model, guint bank, gchar *name)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkTreeIter iter;
     GtkTreeIter child_iter;
     int x;
@@ -1057,6 +1096,8 @@ static void fill_store(GtkTreeStore *model)
  **/
 GtkWidget *create_preset_tree(Device *device)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *treeview;
     GtkTreeStore *store;
     GtkCellRenderer *renderer;
@@ -1089,6 +1130,8 @@ GtkWidget *create_preset_tree(Device *device)
  **/
 static void show_store_preset_window(GtkWidget *window, gchar *default_name)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *dialog, *cmbox, *entry, *grid, *label, *vbox;
     GStrv names;
     int x;
@@ -1146,6 +1189,8 @@ static void action_store_cb(GSimpleAction *action,
                             GVariant      *parameter,
                             gpointer       app)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *window = g_object_get_data(G_OBJECT(action), "window");
     show_store_preset_window(window, NULL);
 }
@@ -1159,6 +1204,8 @@ static void action_show_about_dialog_cb(GSimpleAction *action,
                                         GVariant      *parameter,
                                         gpointer       app)
 {
+    ASSERT_MAIN_THREAD();
+
     static const gchar * const authors[] = {
         "Tomasz Moń <desowin@gmail.com>",
         "Stephen Rigler <riglersc@gmail.com>",
@@ -1260,6 +1307,8 @@ static void action_open_preset_cb(GSimpleAction *action,
                                   GVariant      *parameter,
                                   gpointer       app)
 {
+    ASSERT_MAIN_THREAD();
+
     static GtkWidget *dialog = NULL;
 
     if (dialog != NULL)
@@ -1400,6 +1449,8 @@ static void action_save_preset_cb(GSimpleAction *action,
                                   GVariant      *parameter,
                                   gpointer       app)
 {
+    ASSERT_MAIN_THREAD();
+
     static GtkWidget *dialog = NULL;
 
     if (dialog != NULL)
@@ -1503,6 +1554,8 @@ static GActionEntry win_entries[] =
  **/
 void add_menubar(GtkApplication *app)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkBuilder *builder;
     GMenuModel *app_menu;
     GMenuModel *menubar;
@@ -1553,6 +1606,8 @@ static gint widget_tree_key_compare_func(gconstpointer a, gconstpointer b, gpoin
  **/
 void gui_create(GtkApplication *app, Device *device)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *vbox;
     GtkWidget *hbox;
     GtkWidget *widget;
@@ -1635,6 +1690,8 @@ void gui_create(GtkApplication *app, Device *device)
  **/
 void gui_free()
 {
+    ASSERT_MAIN_THREAD();
+
     g_tree_destroy(widget_tree);
     widget_tree = NULL;
 
@@ -1651,6 +1708,8 @@ void gui_free()
  **/
 gboolean unsupported_device_dialog(Device **device)
 {
+    ASSERT_MAIN_THREAD();
+
     extern Device* supported_devices[];
     extern int n_supported_devices;
 
@@ -1707,6 +1766,8 @@ gboolean unsupported_device_dialog(Device **device)
  **/
 gint select_device_dialog (GList *devices)
 {
+    ASSERT_MAIN_THREAD();
+
     GtkWidget *dialog;
     GtkWidget *label;
     GtkWidget *combo_box;
