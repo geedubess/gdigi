@@ -386,12 +386,12 @@ static void unpack_message(GString *msg)
                 stop = TRUE;
                 break;
             }
-            if (str[offset+x] == 0xF7) {
+            if (str[offset+x] == MIDI_EOX) {
                 if (x == 0) {
                     str[i] = status;
                     i++;
                 }
-                str[i] = 0xF7;
+                str[i] = MIDI_EOX;
                 i++;
                 stop = TRUE;
                 break;
@@ -447,8 +447,8 @@ int receive_modifier_linkable_list(gpointer unused) {
 void push_message(GString *msg)
 {
     MessageID msgid = get_message_id(msg);
-    if (((unsigned char)msg->str[0] == 0xF0) &&
-            ((unsigned char)msg->str[msg->len-1] == 0xF7)) {
+    if (((unsigned char)msg->str[0] == MIDI_SYSEX) &&
+            ((unsigned char)msg->str[msg->len-1] == MIDI_EOX)) {
         debug_msg(DEBUG_VERBOSE, "Pushing correct message onto midi rx queue:");
     } else {
         g_warning("Pushing incorrect message onto midi rx queue!");
@@ -643,15 +643,15 @@ gpointer read_data_thread(gboolean *stop)
             int bytes;
 
             if (string == NULL) {
-                while (buf[i] != 0xF0 && i < length)
+                while (buf[i] != MIDI_SYSEX && i < length)
                     i++;
             }
 
             pos = i;
 
-            for (bytes = 0; (bytes<length-i) && (buf[i+bytes] != 0xF7); bytes++);
+            for (bytes = 0; (bytes<length-i) && (buf[i+bytes] != MIDI_EOX); bytes++);
 
-            if (buf[i+bytes] == 0xF7) bytes++;
+            if (buf[i+bytes] == MIDI_EOX) bytes++;
 
             i += bytes;
 
@@ -660,7 +660,7 @@ gpointer read_data_thread(gboolean *stop)
             else
                 g_string_append_len(string, (gchar*)&buf[pos], bytes);
 
-            if ((unsigned char)string->str[string->len-1] == 0xF7) {
+            if ((unsigned char)string->str[string->len-1] == MIDI_EOX) {
                 /* push message on stack */
                 push_message(string);
                 string = NULL;
@@ -1121,7 +1121,7 @@ GStrv query_preset_names(gchar bank)
         }
 
         for (x=10; ((x<data->len) && (n<n_total)); x++) {
-            if ((unsigned char)data->str[x] == 0xF7) /* every message ends with 0xF7 */
+            if ((unsigned char)data->str[x] == MIDI_EOX) /* every message ends with 0xF7 */
                 break;
 
             str_array[n] = g_strdup(&data->str[x]);
@@ -1421,7 +1421,7 @@ static void request_device_configuration()
 
     if (data->len > 14) {
         os_major = data->str[8];
-        os_minor = (((data->str[9] & 0xF0) >> 4) * 10) |
+        os_minor = (((data->str[9] & MIDI_SYSEX) >> 4) * 10) |
                    (data->str[9] & 0x0F);
         g_message("OS version: %d.%d", os_major, os_minor);
 

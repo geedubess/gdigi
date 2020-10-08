@@ -39,6 +39,9 @@ extern unsigned char device_id;
 extern unsigned char family_id;
 extern unsigned char product_id;
 
+#define MIDI_SYSEX 0xF0 /* begin system exclusive message */
+#define MIDI_EOX   0xF7 /* end of system exclusive message */
+
 #define MODEL_ID(m) _MODEL_ID(m##_FAMILY, m##_PRODUCT)
 #define _MODEL_ID(f,p) ((f)<<8 | (p))
 
