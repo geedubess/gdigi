@@ -20,11 +20,13 @@
 #include <getopt.h>
 #include <alsa/asoundlib.h>
 #include <alloca.h>
+#include <rtmidi/rtmidi_c.h>
 #include "gdigi.h"
 #include "gdigi_xml.h"
 #include "gui.h"
 
 extern int gui_init(void *device);
+char * rtmidi_api_display_name(enum RtMidiApi e);
 
 /*
  * These initial values are used when initiating communication
@@ -36,9 +38,9 @@ unsigned char device_id = INIT_DEVICE;
 unsigned char family_id = INIT_FAMILY;
 unsigned char product_id = INIT_PRODUCT;
 
-static snd_rawmidi_t *output = NULL;
-static snd_rawmidi_t *input = NULL;
-static char *device_port = NULL;
+static RtMidiPtr output = NULL;
+static RtMidiPtr input = NULL;
+static gint device_port = -1;
 
 static GQueue *message_queue = NULL;
 static GMutex *message_queue_mutex = NULL;
@@ -284,21 +286,27 @@ static char calculate_checksum(gchar *array, gint length)
  **/
 gboolean open_device()
 {
-    int err;
+    gint api = RTMIDI_UNPACK_API(device_port);
+    gint device = RTMIDI_UNPACK_DEVICE(device_port);
 
-    err = snd_rawmidi_open(&input, &output, device_port, SND_RAWMIDI_SYNC);
-    if (err) {
-        fprintf(stderr, "snd_rawmidi_open %s failed: %d\n", device_port, err);
-        return TRUE;
-    }
+    debug_msg(DEBUG_STARTUP, "Using packed device %d = API: %d device: %d",
+                                device_port, api, device);
 
-    err = snd_rawmidi_nonblock(output, 0);
-    if (err) {
-        fprintf(stderr, "snd_rawmidi_nonblock failed: %d\n", err);
-        return TRUE;
-    }
+    output = rtmidi_out_create(api, "default client name");
+    input = rtmidi_in_create(api, "default client name", 100);
 
-    snd_rawmidi_read(input, NULL, 0); /* trigger reading */
+    debug_msg(DEBUG_STARTUP, "Found output device API: %s device: %s",
+                            rtmidi_api_display_name(api),
+                            rtmidi_get_port_name(output, device));
+
+    debug_msg(DEBUG_STARTUP, "Found input device API: %s device: %s",
+                            rtmidi_api_display_name(api),
+                            rtmidi_get_port_name(input, device));
+
+    rtmidi_open_port(output, device, "output port");
+    rtmidi_open_port(input, device, "input port");
+
+    rtmidi_in_ignore_types(input, FALSE, TRUE, TRUE); /* sysex, time, sense */
 
     return FALSE;
 }
@@ -311,7 +319,8 @@ gboolean open_device()
  **/
 void send_data(char *data, int length)
 {
-    snd_rawmidi_write(output, data, length);
+//    snd_rawmidi_write(output, data, length);
+    rtmidi_out_send_message(output, (unsigned char*) data, length);
 }
 
 /**
@@ -584,96 +593,99 @@ void push_message(GString *msg)
     }
 }
 
-gpointer read_data_thread(gboolean *stop)
+void rtmidi_read_data_cb (double timeStamp, const unsigned char* buf, void *userData)
 {
-    /* This is mostly taken straight from alsa-utils-1.0.19 amidi/amidi.c
-       by Clemens Ladisch <clemens@ladisch.de> */
-    int err;
-    int npfds;
-    struct pollfd *pfds;
     GString *string = NULL;
+    int i = 0;
+    int length = 4096;
 
-    npfds = snd_rawmidi_poll_descriptors_count(input);
-    pfds = alloca(npfds * sizeof(struct pollfd));
-    snd_rawmidi_poll_descriptors(input, pfds, npfds);
+    debug_msg(DEBUG_MSG2HOST, "%s running", __FUNCTION__);
 
-    do {
-        unsigned char buf[256];
-        int i, length;
-        unsigned short revents;
+    while (i < length) {
+        int pos;
+        int bytes;
 
-        /* SysEx messages can't contain bytes with 8th bit set.
-           memset our buffer to 0xFF, so if for some reason we'll
-           get out of reply bounds, we'll catch it */
-        memset(buf, '\0', sizeof(buf));
-
-        err = poll(pfds, npfds, 200);
-        if (err < 0 && errno == EINTR)
-            break;
-        if (err < 0) {
-            g_error("poll failed: %s", strerror(errno));
-            break;
-        }
-        if ((err = snd_rawmidi_poll_descriptors_revents(input, pfds, npfds, &revents)) < 0) {
-            g_error("cannot get poll events: %s", snd_strerror(errno));
-            break;
-        }
-        if (revents & (POLLERR | POLLHUP))
-            break;
-        if (!(revents & POLLIN))
-            continue;
-
-        err = snd_rawmidi_read(input, buf, sizeof(buf));
-        if (err == -EAGAIN)
-            continue;
-        if (err < 0) {
-            g_error("cannot read: %s", snd_strerror(err));
-            break;
-        }
-
-        length = 0;
-        for (i = 0; i < err; ++i)
-            if ((unsigned char)buf[i] != 0xFE) /* ignore active sensing */
-                buf[length++] = buf[i];
-
-        i = 0;
-
-        while (i < length) {
-            int pos;
-            int bytes;
-
-            if (string == NULL) {
-                while (buf[i] != MIDI_SYSEX && i < length)
-                    i++;
+        if (string == NULL) {
+            int debug_seek_start = i;
+            /* seek start of SYSEX */
+            while (buf[i] != MIDI_SYSEX && i < length)
+                i++;
+            if (i >= length) {
+                debug_msg(DEBUG_MSG2HOST,
+                            "%s didn't find MIDI_SYSEX from %d to %d; exiting",
+                            __FUNCTION__, debug_seek_start, length);
+                continue; /* no more SYSEX messages in this buffer */
+            } else {
+                debug_msg(DEBUG_MSG2HOST,
+                            "%s found MIDI_SYSEX at input offset %d",
+                            __FUNCTION__, i);
             }
-
-            pos = i;
-
-            for (bytes = 0; (bytes<length-i) && (buf[i+bytes] != MIDI_EOX); bytes++);
-
-            if (buf[i+bytes] == MIDI_EOX) bytes++;
-
-            i += bytes;
-
-            if (string == NULL)
-                string = g_string_new_len((gchar*)&buf[pos], bytes);
-            else
-                g_string_append_len(string, (gchar*)&buf[pos], bytes);
-
-            if ((unsigned char)string->str[string->len-1] == MIDI_EOX) {
-                /* push message on stack */
-                push_message(string);
-                string = NULL;
-            }
+        } else {
+            debug_msg(DEBUG_MSG2HOST,
+                        "%s appending to string, starting at input offset %d",
+                        __FUNCTION__, i);
+            /* else append to existing string */
         }
-    } while (*stop == FALSE);
+
+        pos = i;
+
+        /* seek end of SYSEX */
+        for (bytes = 0; (bytes<length-i) && (buf[i+bytes] != MIDI_EOX); bytes++);
+
+        if (buf[i+bytes] == MIDI_EOX) {
+            debug_msg(DEBUG_MSG2HOST,
+                        "%s found MIDI_EOX at input offset %d",
+                        __FUNCTION__, i + bytes);
+            bytes++;
+        } else {
+            debug_msg(DEBUG_MSG2HOST,
+                        "%s did not find MIDI_EOX in buffer (but appending)",
+                        __FUNCTION__);
+        }
+
+        i += bytes;
+
+        if (string == NULL) {
+            debug_msg(DEBUG_MSG2HOST,
+                        "%s created new string %d bytes",
+                        __FUNCTION__, bytes);
+            string = g_string_new_len((gchar*)&buf[pos], bytes);
+            if (bytes == length)
+                debug_msg_hex((unsigned char *)&buf[pos], bytes);
+        } else {
+            debug_msg(DEBUG_MSG2HOST,
+                        "%s appended to string %d bytes at output offset %d",
+                        __FUNCTION__, bytes, pos);
+            g_string_append_len(string, (gchar*)&buf[pos], bytes);
+        }
+
+        if ((unsigned char)string->str[string->len-1] == MIDI_EOX) {
+            /* push message on stack */
+            push_message(string);
+            string = NULL;
+
+#if 01
+            /*
+             * rtmidi bug: the C wrapper does not give us access to the size
+             * of the message in the callback. As a result, we don't know how
+             * far to scan, and if we keep scanning memory past the first message,
+             * we're going to find stale message data that we don't want to parse.
+             *
+             * Big Assumption: when this callback is called, there is one and only
+             * one [complete] message being delivered. For now, the partial-message
+             * logic is here but is unused.
+             * So: exit after handling one message...
+             */
+
+            return;
+#endif
+        }
+    }
 
     if (string) {
         g_string_free(string, TRUE);
         string = NULL;
     }
-
-    return NULL;
 }
 
 /**
@@ -1392,6 +1404,7 @@ static gboolean request_who_am_i(unsigned char *device_id, unsigned char *family
     send_message(REQUEST_WHO_AM_I, "\x7F\x7F\x7F", 3);
 
     GString *data = get_message_by_id(RECEIVE_WHO_AM_I);
+//    debug_msg(DEBUG_STARTUP, "received RECEIVE_WHO_AM_I len %d", data->len);
     if ((data != NULL) && (data->len > 11)) {
         *device_id = data->str[8];
         *family_id = data->str[9];
@@ -1448,7 +1461,7 @@ static void request_device_configuration()
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 static GOptionEntry options[] = {
-    {"device", 'd', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_STRING, &device_port, "MIDI device port to use", NULL},
+    {"device", 'd', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_INT, &device_port, "MIDI device port to use", NULL},
     {"debug-flags <flags>", 'D', G_OPTION_FLAG_IN_MAIN, G_OPTION_ARG_CALLBACK, set_debug_flags,
         "<flags> any of a, d, g, h, m, s, x, v:\n"
         "                                "
@@ -1473,6 +1486,27 @@ static GOptionEntry options[] = {
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+// TODO: newer versions of librtmidi have this built in
+char * rtmidi_api_display_name(enum RtMidiApi e) {
+    switch(e) {
+        case RT_MIDI_API_UNSPECIFIED:
+            return "UNSPECIFIED";
+        case RT_MIDI_API_MACOSX_CORE:
+            return "MACOSX_CORE";
+        case RT_MIDI_API_LINUX_ALSA:
+            return "LINUX_ALSA";
+        case RT_MIDI_API_UNIX_JACK:
+            return "UNIX_JACK";
+        case RT_MIDI_API_WINDOWS_MM:
+            return "WINDOWS_MM";
+        case RT_MIDI_API_WINDOWS_KS:
+            return "WINDOWS_KS";
+        case RT_MIDI_API_RTMIDI_DUMMY:
+            return "RTMIDI_DUMMY";
+        default: return "unknown API";
+    }
+}
+
 /**
  *  \param[out] devices GList containing numbers (packed into pointers)
  *              of connected DigiTech devices
@@ -1483,18 +1517,66 @@ static GOptionEntry options[] = {
  **/
 static gint get_digitech_devices(GList **devices)
 {
-    gint card_num = -1;
     gint number = 0;
+    gint card_num = -1;
+    gint api_idx;
+    gint api;
+    const gchar *name;
+    RtMidiPtr tmpDev = NULL;
+    gint num_api = rtmidi_get_compiled_api(NULL);
+    enum RtMidiApi *api_table = g_slice_alloc(sizeof(enum RtMidiApi)*
+                                rtmidi_sizeof_rtmidi_api());
+    rtmidi_get_compiled_api(&api_table);
 
-    while (!snd_card_next(&card_num) && (card_num > -1)) {
-        char* name;
-        snd_card_get_longname(card_num, &name);
-        if (strspn(name,"DigiTech") > 0) {
-            number++;
-            *devices = g_list_append(*devices, GINT_TO_POINTER(card_num));
+    for (api_idx = 0; api_idx < num_api; api_idx++) {
+        api = api_table[api_idx];
+        debug_msg(DEBUG_STARTUP, "Probing using API %d: %s.",
+                                api, rtmidi_api_display_name(api));
+
+        // TODO: 100 is the default queueSizeLimit
+        tmpDev = rtmidi_out_create(api, "default client name");
+
+        /* list device information */
+        for (card_num = 0; card_num < rtmidi_get_port_count(tmpDev); card_num++) {
+            gint packed_id = RTMIDI_PACK(api, card_num);
+            name = rtmidi_get_port_name(tmpDev, card_num);
+            debug_msg(DEBUG_STARTUP, "%d: %s (gdigi device id: %d)",
+                                    card_num, name, packed_id);
+            if (g_strrstr(name,"DigiTech") != NULL ) {
+                number++;
+                *devices = g_list_append(*devices,
+                        GINT_TO_POINTER(packed_id));
+            }
         }
-        free(name);
+        rtmidi_out_free(tmpDev);
     }
+
+#if 01
+    for (api_idx = 0; api_idx < num_api; api_idx++) {
+        api = api_table[api_idx];
+        debug_msg(DEBUG_STARTUP, "Probing using API %d: %s.",
+                                api, rtmidi_api_display_name(api));
+
+        // TODO: 100 is the default queueSizeLimit
+        tmpDev = rtmidi_in_create(api, "default client name", 100);
+
+        /* list device information */
+        for (card_num = 0; card_num < rtmidi_get_port_count(tmpDev); card_num++) {
+            gint packed_id = RTMIDI_PACK(api, card_num);
+            name = rtmidi_get_port_name(tmpDev, card_num);
+            debug_msg(DEBUG_STARTUP, "%d: IN %s (gdigi device id: %d)",
+                                    card_num, name, packed_id);
+#if 0
+            if (g_strrstr(name,"DigiTech") != NULL ) {
+                number++;
+                *devices = g_list_append(*devices,
+                        GINT_TO_POINTER(packed_id));
+            }
+#endif
+        }
+        rtmidi_in_free(tmpDev);
+    }
+#endif
 
     return number;
 }
@@ -1510,8 +1592,6 @@ void device_gui_disable(void) {
 int main(int argc, char *argv[]) {
     GError *error = NULL;
     GOptionContext *context;
-    static gboolean stop_read_thread = FALSE;
-    GThread *read_thread = NULL;
 
     context = g_option_context_new(NULL);
     g_option_context_add_main_entries(context, options, NULL);
@@ -1524,7 +1604,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    if (device_port == NULL) {
+    if (device_port == -1) {
         /* port not given explicitly in commandline - search for devices */
         GList *devices = NULL;
         GList *device = NULL;
@@ -1542,12 +1622,8 @@ int main(int argc, char *argv[]) {
             }
         }
         device = g_list_nth(devices, chosen_device);
-        device_port = g_strdup_printf("hw:%d,0,0",
-                                      GPOINTER_TO_INT(device->data));
+        device_port = GPOINTER_TO_INT(device->data);
         g_list_free(devices);
-        debug_msg(DEBUG_STARTUP, "Found device %s.", device_port);
-    } else {
-        debug_msg(DEBUG_STARTUP, "Using device %s.", device_port);
     }
 
     g_option_context_free(context);
@@ -1560,9 +1636,10 @@ int main(int argc, char *argv[]) {
         g_mutex_init(message_queue_mutex);
         message_queue_cond = &_message_queue_cond;
         g_cond_init(message_queue_cond);
-        read_thread = g_thread_new("read thread",
-                                    (GThreadFunc)read_data_thread,
-                                    &stop_read_thread);
+
+        rtmidi_in_set_callback(input, rtmidi_read_data_cb, NULL);
+
+//        while(1);
 
         /*
          * ask for an id several times until it stops changing:
@@ -1634,11 +1711,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (read_thread != NULL) {
-        stop_read_thread = TRUE;
-        g_thread_join(read_thread);
-    }
-
     if (message_queue != NULL && g_queue_get_length(message_queue)) {
         g_warning("%d unread messages in queue",
                   g_queue_get_length(message_queue));
@@ -1647,13 +1719,17 @@ int main(int argc, char *argv[]) {
     }
 
     if (output != NULL) {
-        snd_rawmidi_drain(output);
-        snd_rawmidi_close(output);
+        rtmidi_close_port(output);
+        rtmidi_out_free(output);
+        // snd_rawmidi_drain(output);
+        // snd_rawmidi_close(output);
     }
 
     if (input != NULL) {
-        snd_rawmidi_drain(input);
-        snd_rawmidi_close(input);
+        rtmidi_close_port(input);
+        rtmidi_in_free(input);
+        // snd_rawmidi_drain(input);
+        // snd_rawmidi_close(input);
     }
 
     return EXIT_SUCCESS;

@@ -42,6 +42,10 @@ extern unsigned char product_id;
 #define MIDI_SYSEX 0xF0 /* begin system exclusive message */
 #define MIDI_EOX   0xF7 /* end of system exclusive message */
 
+#define RTMIDI_PACK(api,device) ((api)<<8 | ((device)&0xFF))
+#define RTMIDI_UNPACK_API(p) ((p)>>8)
+#define RTMIDI_UNPACK_DEVICE(p) ((p)&0xFF)
+
 #define MODEL_ID(m) _MODEL_ID(m##_FAMILY, m##_PRODUCT)
 #define _MODEL_ID(f,p) ((f)<<8 | (p))
 
