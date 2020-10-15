@@ -20,7 +20,6 @@
 #include <glib-object.h>
 #include <string.h>
 #include <alsa/asoundlib.h>
-#include <rtmidi/rtmidi_c.h>
 #include "gdigi.h"
 #include "gui.h"
 #include "effects.h"
@@ -29,6 +28,8 @@
 #include "gdigi_xml.h"
 #include "resources.h"
 #include "gdigi_gtk.h"
+
+extern void _rtmidi_get_port_name (int api, int dev, char *name);
 
 static gchar* MessageID_names[] = {
     [REQUEST_WHO_AM_I] = "REQUEST_WHO_AM_I",
@@ -1790,11 +1791,10 @@ gint select_device_dialog (GList *devices)
     combo_box = gtk_combo_box_text_new();
     device = g_list_first(devices);
     while (device != NULL) {
+        char name[128]; // TODO: what is the maximum device name from all APIs?
         gint api = RTMIDI_UNPACK_API(GPOINTER_TO_INT(device->data));
         gint dev = RTMIDI_UNPACK_DEVICE(GPOINTER_TO_INT(device->data));
-        RtMidiPtr tmpDev = rtmidi_out_create(api, "default client name");
-        const char *name = rtmidi_get_port_name(tmpDev, dev);
-        rtmidi_out_free(tmpDev);
+        _rtmidi_get_port_name(api, dev, name);
 
         gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_box), NULL, name);
         device = g_list_next(device);

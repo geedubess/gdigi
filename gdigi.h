@@ -20,6 +20,10 @@
 #include <glib.h>
 #include <glib-object.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 typedef enum {
@@ -1301,27 +1305,37 @@ typedef struct {
     GString *data;
 } SettingGenetx;
 
-void send_message(gint procedure, gchar *data, gint len);
-MessageID get_message_id(GString *msg);
-void append_value(GString *msg, guint value);
-GString *get_message_by_id(MessageID id);
-SettingParam *setting_param_new();
-SettingParam *setting_param_new_from_data(gchar *str, gint *len);
-SettingGenetx *setting_genetx_new();
-void setting_genetx_free(SettingGenetx *genetx);
-void setting_param_free(SettingParam *param);
-SectionID get_genetx_section_id(gint version, gint type);
-void set_option(guint id, guint position, guint value);
-void get_option(guint id, guint position);
-void send_object(SectionID section, guint bank, guint index,
-                 gchar *name, GString *data);
-void send_preset_parameters(GList *params);
-void switch_preset(guint bank, guint x);
-void store_preset_name(int x, const gchar *name);
-void set_preset_level(int level);
-GStrv query_preset_names(gchar bank);
-void message_list_free(GList *list);
-GList *get_current_preset();
-GString *format_ipv(guint id, guint pos, guint val);
+extern void send_message(gint procedure, gchar *data, gint len);
+extern MessageID get_message_id(GString *msg);
+extern void append_value(GString *msg, guint value);
+extern GString *get_message_by_id(MessageID id);
+extern SettingParam *setting_param_new();
+extern SettingParam *setting_param_new_from_data(gchar *str, gint *len);
+extern SettingGenetx *setting_genetx_new();
+extern void setting_genetx_free(SettingGenetx *genetx);
+extern void setting_param_free(SettingParam *param);
+extern SectionID get_genetx_section_id(gint version, gint type);
+extern void set_option(guint id, guint position, guint value);
+extern void get_option(guint id, guint position);
+extern void send_object(SectionID section, guint bank, guint index,
+                        gchar *name, GString *data);
+extern void send_preset_parameters(GList *params);
+extern void switch_preset(guint bank, guint x);
+extern void store_preset_name(int x, const gchar *name);
+extern void set_preset_level(int level);
+extern GStrv query_preset_names(gchar bank);
+extern void message_list_free(GList *list);
+extern GList *get_current_preset();
+extern GString *format_ipv(guint id, guint pos, guint val);
+extern int gui_init(void *device);
+extern gint get_digitech_devices(GList **devices);
+extern gboolean open_device (gint packed_api_port);
+extern void send_data(const unsigned char *data, int length);
+extern void _rtmidi_exit();
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* GDIGI_H */
